@@ -95,4 +95,11 @@ export class HasonPage {
   async expectJqFilterValue(value: string) {
     await expect(this.page.locator(commonSelectors.jqFilterInput)).toHaveValue(value);
   }
+
+  async waitForStateToLoad() {
+    // Wait for URL state to be decoded and applied
+    // This is indicated by the jq filter input having a non-default value
+    // or by waiting a reasonable time for async loading
+    await this.page.waitForTimeout(500);
+  }
 }

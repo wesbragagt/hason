@@ -118,10 +118,12 @@ function App() {
     void processJson(jsonInput, appliedJqFilter)
   }, [jsonInput, appliedJqFilter, jqLoaded])
 
-  // Update URL when input changes or jq filter is applied
+  // Update URL when input changes or jq filter is applied (after URL state is loaded)
   useEffect(() => {
-    void updateUrlState(jsonInput, appliedJqFilter, activeTab)
-  }, [jsonInput, appliedJqFilter, activeTab])
+    if (urlStateLoaded) {
+      void updateUrlState(jsonInput, appliedJqFilter, activeTab)
+    }
+  }, [jsonInput, appliedJqFilter, activeTab, urlStateLoaded])
 
   // Handlers for immediate local state updates
   const setJsonInput = (value: string) => {
@@ -134,8 +136,10 @@ function App() {
 
   const setActiveTab = (tab: 'input' | 'output') => {
     setActiveTabLocal(tab)
-    // Update URL immediately for tab changes
-    void updateUrlState(jsonInput, jqFilter, tab)
+    // Update URL immediately for tab changes (if URL state is loaded)
+    if (urlStateLoaded) {
+      void updateUrlState(jsonInput, jqFilter, tab)
+    }
   }
 
   // Keyboard shortcut for help
