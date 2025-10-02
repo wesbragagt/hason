@@ -10,6 +10,8 @@ export class HasonPage {
 
   async inputJson(json: string) {
     await this.page.locator(commonSelectors.jsonInput).fill(json);
+    // Wait for JSON processing to trigger
+    await this.page.waitForTimeout(300);
   }
 
   async setJqFilter(filter: string) {
@@ -18,6 +20,8 @@ export class HasonPage {
 
   async applyJqFilter() {
     await this.page.locator(commonSelectors.applyFilterButton).click();
+    // Wait for filter to be applied and processing to complete
+    await this.page.waitForTimeout(500);
   }
 
   async applyJqFilterWithEnter() {
@@ -30,6 +34,8 @@ export class HasonPage {
 
   async switchToOutputTab() {
     await this.page.locator(commonSelectors.outputTab).click();
+    // Wait for tab switch and output to render
+    await this.page.waitForTimeout(300);
   }
 
   async getJsonOutput() {
@@ -58,7 +64,9 @@ export class HasonPage {
   }
 
   async expectOutputToContain(text: string) {
-    await expect(this.page.locator(commonSelectors.jsonOutput)).toContainText(text);
+    // Wait for JSON processing to complete and output to be rendered
+    await this.page.waitForTimeout(1000); // Give time for async operations
+    await expect(this.page.locator(commonSelectors.jsonOutput)).toContainText(text, { timeout: 10000 });
   }
 
   async expectErrorToBeVisible() {
@@ -100,6 +108,6 @@ export class HasonPage {
     // Wait for URL state to be decoded and applied
     // This is indicated by the jq filter input having a non-default value
     // or by waiting a reasonable time for async loading
-    await this.page.waitForTimeout(500);
+    await this.page.waitForTimeout(2000);
   }
 }
