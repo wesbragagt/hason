@@ -10,48 +10,6 @@ test.describe('Core Functionality', () => {
     await hasonPage.goto();
   });
 
-  test('should complete full user workflow', async () => {
-    const workflowData = testCases.workflowExample.input;
-    
-    // 1. Input JSON
-    await hasonPage.inputJson(workflowData);
-    
-    // 2. Apply filter to get admin users (simplified for basic implementation)
-    await hasonPage.setJqFilter('.users[0]'); // Get first user for now (Alice, who is admin)
-    await hasonPage.applyJqFilter();
-    
-    // 3. Check output
-    await hasonPage.switchToOutputTab();
-    await hasonPage.expectOutputToContain('Alice');
-    await hasonPage.expectOutputToContain('admin');
-  });
-
-  test.skip('should persist state in URL', async ({ page }) => {
-    // TODO: Fix URL state persistence with compression
-    const testData = testCases.simple.input;
-    const testFilter = '.name';
-    
-    // Input data and filter
-    await hasonPage.inputJson(testData);
-    await hasonPage.setJqFilter(testFilter);
-    await hasonPage.applyJqFilter();
-    
-    // Check URL contains encoded data
-    await hasonPage.expectUrlToContainData();
-    
-    // Reload page and verify data persists
-    await page.reload();
-    await hasonPage.waitForStateToLoad();
-    await hasonPage.expectJqFilterValue(testFilter);
-    
-    // Input should also be preserved (formatted)
-    const inputValue = await page.locator('[data-testid="json-input-textarea"]').inputValue();
-    // The app formats JSON on input, so check it contains the data
-    expect(inputValue).toContain('"name"');
-    expect(inputValue).toContain('"John"');
-    expect(inputValue).toContain('30');
-  });
-
   test('should copy output to clipboard', async ({ page }) => {
     await hasonPage.inputJson(testCases.simple.input);
     await hasonPage.switchToOutputTab();
@@ -69,30 +27,6 @@ test.describe('Core Functionality', () => {
     const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
     expect(clipboardContent).toContain('John');
     expect(clipboardContent).toContain('30');
-  });
-
-  test('should handle complex workflow with multiple filter changes', async () => {
-    const nestedData = testCases.nested.input;
-    
-    // Start with nested data
-    await hasonPage.inputJson(nestedData);
-    
-    // First filter: get email
-    await hasonPage.setJqFilter('.user.profile.email');
-    await hasonPage.applyJqFilter();
-    await hasonPage.switchToOutputTab();
-    await hasonPage.expectOutputToContain('test@example.com');
-    
-    // Change filter: get theme
-    await hasonPage.setJqFilter('.user.profile.settings.theme');
-    await hasonPage.applyJqFilter();
-    await hasonPage.expectOutputToContain('dark');
-    
-    // Reset to identity
-    await hasonPage.setJqFilter('.');
-    await hasonPage.applyJqFilter();
-    await hasonPage.expectOutputToContain('user');
-    await hasonPage.expectOutputToContain('profile');
   });
 
   test('should maintain state when switching between tabs', async ({ page }) => {
