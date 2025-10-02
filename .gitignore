@@ -164,4 +164,6 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
-./.playwright-mcp
+
+# Playwright
+.playwright-mcp

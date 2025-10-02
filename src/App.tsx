@@ -10,6 +10,9 @@ function App() {
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
   const [jqLoaded, setJqLoaded] = useState(false)
+  const [viewMode, setViewMode] = useState<'tabs' | 'split'>('tabs')
+  const [activeTab, setActiveTab] = useState<'input' | 'output'>('input')
+  const [showToast, setShowToast] = useState(false)
 
   // Load jq-web dynamically
   useEffect(() => {
@@ -87,9 +90,45 @@ function App() {
     return () => clearTimeout(timeoutId)
   }, [jsonInput, jqFilter])
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Shift+O: Toggle between input/output tabs (only in tabs mode)
+      if (e.ctrlKey && e.shiftKey && e.key === 'O') {
+        e.preventDefault()
+        if (viewMode === 'tabs') {
+          setActiveTab(prev => prev === 'input' ? 'output' : 'input')
+        }
+      }
+      
+      // Ctrl+Shift+I: Toggle between tabs and split view
+      if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+        e.preventDefault()
+        setViewMode(prev => prev === 'tabs' ? 'split' : 'tabs')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [viewMode])
+
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const pastedText = e.clipboardData.getData('text')
     setJsonInput(pastedText)
+    
+    // Auto-switch to output tab after paste if valid JSON
+    try {
+      JSON.parse(pastedText)
+      if (viewMode === 'tabs') {
+        setTimeout(() => {
+          setActiveTab('output')
+          setShowToast(true)
+          setTimeout(() => setShowToast(false), 2000)
+        }, 150)
+      }
+    } catch {
+      // Stay on input tab if JSON is invalid
+    }
   }
 
   return (
@@ -100,7 +139,16 @@ function App() {
       </header>
 
       <div className="filter-controls">
-        <label htmlFor="jq-filter" className="filter-label">jq Filter:</label>
+        <div className="filter-row">
+          <label htmlFor="jq-filter" className="filter-label">jq Filter:</label>
+          <button
+            className="view-toggle-btn"
+            onClick={() => setViewMode(prev => prev === 'tabs' ? 'split' : 'tabs')}
+            title="Toggle view mode (Ctrl+Shift+I)"
+          >
+            {viewMode === 'tabs' ? '⊞ Split View' : '⊟ Tab View'}
+          </button>
+        </div>
         <input
           id="jq-filter"
           type="text"
@@ -111,34 +159,83 @@ function App() {
         />
       </div>
 
-      <div className="editor-container">
-        <div className="panel input-panel">
-          <div className="panel-header">
-            <h3>JSON Input</h3>
+      {viewMode === 'tabs' ? (
+        <div className="tabs-container">
+          <div className="tabs-header">
+            <button
+              className={`tab ${activeTab === 'input' ? 'active' : ''}`}
+              onClick={() => setActiveTab('input')}
+            >
+              JSON Input
+            </button>
+            <button
+              className={`tab ${activeTab === 'output' ? 'active' : ''}`}
+              onClick={() => setActiveTab('output')}
+            >
+              Output
+            </button>
+            <span className="keyboard-hint">Ctrl+Shift+O to switch tabs</span>
           </div>
-          <textarea
-            value={jsonInput}
-            onChange={(e) => setJsonInput(e.target.value)}
-            onPaste={handlePaste}
-            className="json-textarea"
-            placeholder="Paste your JSON here..."
-            spellCheck={false}
-          />
-        </div>
-
-        <div className="panel output-panel">
-          <div className="panel-header">
-            <h3>Output</h3>
-          </div>
-          <div className="output-content">
-            {error ? (
-              <div className="error-message">{error}</div>
+          
+          <div className="tab-content">
+            {activeTab === 'input' ? (
+              <div className="panel input-panel">
+                <textarea
+                  value={jsonInput}
+                  onChange={(e) => setJsonInput(e.target.value)}
+                  onPaste={handlePaste}
+                  className="json-textarea"
+                  placeholder="Paste your JSON here..."
+                  spellCheck={false}
+                />
+              </div>
             ) : (
-              <pre className="json-output">{output}</pre>
+              <div className="panel output-panel">
+                <div className="output-content">
+                  {error ? (
+                    <div className="error-message">{error}</div>
+                  ) : (
+                    <pre className="json-output">{output}</pre>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="editor-container">
+          <div className="panel input-panel">
+            <div className="panel-header">
+              <h3>JSON Input</h3>
+            </div>
+            <textarea
+              value={jsonInput}
+              onChange={(e) => setJsonInput(e.target.value)}
+              onPaste={handlePaste}
+              className="json-textarea"
+              placeholder="Paste your JSON here..."
+              spellCheck={false}
+            />
+          </div>
+
+          <div className="panel output-panel">
+            <div className="panel-header">
+              <h3>Output</h3>
+            </div>
+            <div className="output-content">
+              {error ? (
+                <div className="error-message">{error}</div>
+              ) : (
+                <pre className="json-output">{output}</pre>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showToast && (
+        <div className="toast">Switched to output view</div>
+      )}
 
       <PWABadge />
     </div>
