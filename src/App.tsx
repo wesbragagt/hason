@@ -213,6 +213,7 @@ function App() {
                 onKeyDown={handleJqFilterKeyDown}
                 className="flex-1 bg-background border-border/60 focus:border-primary focus:bg-background text-foreground placeholder:text-muted-foreground font-mono"
                 placeholder="Enter jq filter..."
+                data-testid="jq-filter-input"
               />
               <Button
                 onClick={() => setAppliedJqFilter(jqFilter)}
@@ -220,6 +221,7 @@ function App() {
                 size="sm"
                 className="bg-primary/10 border-border hover:bg-primary/20"
                 title="Apply jq filter"
+                data-testid="apply-filter-button"
               >
                 <CornerDownLeft className="h-4 w-4" />
               </Button>
@@ -257,6 +259,7 @@ function App() {
                       ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
                       : 'hover:bg-primary/20'
                   )}
+                  data-testid="json-input-tab"
                 >
                   JSON Input
                 </Button>
@@ -270,6 +273,7 @@ function App() {
                       ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
                       : 'hover:bg-primary/20'
                   )}
+                  data-testid="output-tab"
                 >
                   Output
                 </Button>
@@ -280,6 +284,7 @@ function App() {
                     size="sm"
                     className="ml-auto hover:bg-primary/20"
                     title="Copy output to clipboard"
+                    data-testid="copy-output-button"
                   >
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
@@ -296,16 +301,17 @@ function App() {
                     className="flex-1 border-0 bg-transparent resize-none font-mono text-sm p-4 focus-visible:ring-0 focus-visible:ring-offset-0"
                     placeholder="Paste your JSON here..."
                     spellCheck={false}
+                    data-testid="json-input-textarea"
                   />
                 )}
                 {activeTab === 'output' && (
                   <div className="flex-1 p-4 overflow-auto">
                     {error ? (
-                      <div className="text-destructive font-mono text-sm bg-destructive/10 p-3 rounded-lg border border-destructive/20">
+                      <div className="text-destructive font-mono text-sm bg-destructive/10 p-3 rounded-lg border border-destructive/20" data-testid="error-message">
                         {error}
                       </div>
                     ) : (
-                      <pre className="font-mono text-sm text-foreground whitespace-pre-wrap break-words">
+                      <pre className="font-mono text-sm text-foreground whitespace-pre-wrap break-words" data-testid="json-output">
                         {output}
                       </pre>
                     )}
@@ -331,6 +337,7 @@ function App() {
                   }}
                   placeholder="Paste your JSON here..."
                   spellCheck={false}
+                  data-testid="json-input-textarea-split"
                 />
               </CardContent>
             </Card>
@@ -346,6 +353,7 @@ function App() {
                       size="sm"
                       className="hover:bg-primary/20"
                       title="Copy output to clipboard"
+                      data-testid="copy-output-button-split"
                     >
                       {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     </Button>
@@ -360,11 +368,11 @@ function App() {
                   className="overflow-auto"
                 >
                   {error ? (
-                    <div className="text-destructive font-mono text-sm bg-destructive/10 p-3 rounded-lg border border-destructive/20">
+                    <div className="text-destructive font-mono text-sm bg-destructive/10 p-3 rounded-lg border border-destructive/20" data-testid="error-message-split">
                       {error}
                     </div>
                   ) : (
-                    <pre className="font-mono text-sm text-foreground whitespace-pre-wrap break-words">
+                    <pre className="font-mono text-sm text-foreground whitespace-pre-wrap break-words" data-testid="json-output-split">
                       {output}
                     </pre>
                   )}

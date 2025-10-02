@@ -1,0 +1,124 @@
+
+> hason@0.0.0 test:e2e
+> playwright test --reporter=list
+
+
+Running 30 tests using 1 worker
+
+  ✓   1 [chromium] › tests/e2e/core-functionality.spec.ts:13:3 › Core Functionality › should complete full user workflow (689ms)
+  ✓   2 [chromium] › tests/e2e/core-functionality.spec.ts:29:3 › Core Functionality › should persist state in URL (309ms)
+  ✓   3 [chromium] › tests/e2e/core-functionality.spec.ts:53:3 › Core Functionality › should copy output to clipboard (278ms)
+  ✓   4 [chromium] › tests/e2e/core-functionality.spec.ts:72:3 › Core Functionality › should handle complex workflow with multiple filter changes (479ms)
+  ✓   5 [chromium] › tests/e2e/core-functionality.spec.ts:96:3 › Core Functionality › should maintain state when switching between tabs (292ms)
+  ✓   6 [chromium] › tests/e2e/core-functionality.spec.ts:120:3 › Core Functionality › should show error and recover gracefully (378ms)
+  ✓   7 [chromium] › tests/e2e/core-functionality.spec.ts:147:3 › Core Functionality › should handle share functionality (262ms)
+  ✓   8 [chromium] › tests/e2e/jq-filters.spec.ts:13:3 › jq Filters › should apply basic property filter via button (289ms)
+  ✓   9 [chromium] › tests/e2e/jq-filters.spec.ts:24:3 › jq Filters › should apply filter via Enter key (268ms)
+  ✓  10 [chromium] › tests/e2e/jq-filters.spec.ts:35:3 › jq Filters › should handle nested property access (321ms)
+  ✓  11 [chromium] › tests/e2e/jq-filters.spec.ts:46:3 › jq Filters › should handle array access (296ms)
+  ✘  12 [chromium] › tests/e2e/jq-filters.spec.ts:57:3 › jq Filters › should handle invalid filter gracefully (30.0s)
+  ✓  13 [chromium] › tests/e2e/jq-filters.spec.ts:70:3 › jq Filters › should update filter without losing input (485ms)
+  ✓  14 [chromium] › tests/e2e/jq-filters.spec.ts:92:3 › jq Filters › should reset filter to identity (446ms)
+  ✓  15 [chromium] › tests/e2e/json-processing.spec.ts:13:3 › JSON Processing › should accept and format valid JSON (252ms)
+  ✓  16 [chromium] › tests/e2e/json-processing.spec.ts:23:3 › JSON Processing › should handle identity filter correctly (279ms)
+  ✓  17 [chromium] › tests/e2e/json-processing.spec.ts:36:3 › JSON Processing › should handle invalid JSON gracefully (263ms)
+  ✓  18 [chromium] › tests/e2e/json-processing.spec.ts:45:3 › JSON Processing › should handle incomplete JSON gracefully (257ms)
+  ✓  19 [chromium] › tests/e2e/json-processing.spec.ts:54:3 › JSON Processing › should handle empty input gracefully (229ms)
+  ✓  20 [chromium] › tests/e2e/json-processing.spec.ts:63:3 › JSON Processing › should process nested objects correctly (241ms)
+  ✓  21 [chromium] › tests/e2e/json-processing.spec.ts:73:3 › JSON Processing › should process arrays correctly (247ms)
+  ✓  22 [chromium] › tests/e2e/ui-interactions.spec.ts:13:3 › UI Interactions › should toggle between input and output tabs (252ms)
+  ✓  23 [chromium] › tests/e2e/ui-interactions.spec.ts:26:3 › UI Interactions › should toggle theme (311ms)
+  ✘  24 [chromium] › tests/e2e/ui-interactions.spec.ts:44:3 › UI Interactions › should open and close help drawer (30.0s)
+  ✓  25 [chromium] › tests/e2e/ui-interactions.spec.ts:55:3 › UI Interactions › should open help with keyboard shortcut (507ms)
+  ✓  26 [chromium] › tests/e2e/ui-interactions.spec.ts:66:3 › UI Interactions › should switch to output tab after pasting in tabs mode (408ms)
+  ✓  27 [chromium] › tests/e2e/ui-interactions.spec.ts:83:3 › UI Interactions › should show toast notification after paste (3.1s)
+  ✘  28 [chromium] › tests/e2e/ui-interactions.spec.ts:98:3 › UI Interactions › should toggle view mode between tabs and split (5.4s)
+  ✓  29 [chromium] › tests/e2e/ui-interactions.spec.ts:122:3 › UI Interactions › should maintain focus on filter input after applying filter (296ms)
+  ✓  30 [chromium] › tests/e2e/ui-interactions.spec.ts:134:3 › UI Interactions › should show copy button only when there is output (341ms)
+
+
+  1) [chromium] › tests/e2e/jq-filters.spec.ts:57:3 › jq Filters › should handle invalid filter gracefully 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.textContent: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('[data-testid="json-output"]')[22m
+
+
+       at helpers/page-objects.ts:36
+
+      34 |
+      35 |   async getJsonOutput() {
+    > 36 |     return await this.page.locator(commonSelectors.jsonOutput).textContent();
+         |                                                                ^
+      37 |   }
+      38 |
+      39 |   async getErrorMessage() {
+        at HasonPage.getJsonOutput (/home/wesbragagt/dev/hason/tests/e2e/helpers/page-objects.ts:36:64)
+        at /home/wesbragagt/dev/hason/tests/e2e/jq-filters.spec.ts:66:36
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/jq-filters-jq-Filters-shou-a4842-e-invalid-filter-gracefully-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/jq-filters-jq-Filters-shou-a4842-e-invalid-filter-gracefully-chromium/error-context.md
+
+  2) [chromium] › tests/e2e/ui-interactions.spec.ts:44:3 › UI Interactions › should open and close help drawer 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('[data-radix-portal]')[22m
+
+
+      48 |     
+      49 |     // Close help by clicking outside (on the overlay)
+    > 50 |     await page.locator('[data-radix-portal]').click({ position: { x: 10, y: 10 } });
+         |                                               ^
+      51 |     await page.waitForTimeout(200);
+      52 |     await hasonPage.expectHelpToBeHidden();
+      53 |   });
+        at /home/wesbragagt/dev/hason/tests/e2e/ui-interactions.spec.ts:50:47
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ui-interactions-UI-Interac-6679d--open-and-close-help-drawer-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ui-interactions-UI-Interac-6679d--open-and-close-help-drawer-chromium/error-context.md
+
+  3) [chromium] › tests/e2e/ui-interactions.spec.ts:98:3 › UI Interactions › should toggle view mode between tabs and split 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m failed
+
+    Locator:  locator('h3:has-text("JSON Input")')
+    Expected: visible
+    Received: <element(s) not found>
+    Timeout:  5000ms
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('h3:has-text("JSON Input")')[22m
+
+
+      110 |     const outputCard = page.locator('h3:has-text("Output")');
+      111 |     
+    > 112 |     await expect(inputCard).toBeVisible();
+          |                             ^
+      113 |     await expect(outputCard).toBeVisible();
+      114 |     
+      115 |     // Click again to switch back to tabs mode
+        at /home/wesbragagt/dev/hason/tests/e2e/ui-interactions.spec.ts:112:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ui-interactions-UI-Interac-93877-mode-between-tabs-and-split-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ui-interactions-UI-Interac-93877-mode-between-tabs-and-split-chromium/error-context.md
+
+  3 failed
+    [chromium] › tests/e2e/jq-filters.spec.ts:57:3 › jq Filters › should handle invalid filter gracefully 
+    [chromium] › tests/e2e/ui-interactions.spec.ts:44:3 › UI Interactions › should open and close help drawer 
+    [chromium] › tests/e2e/ui-interactions.spec.ts:98:3 › UI Interactions › should toggle view mode between tabs and split 
+  27 passed (1.3m)
