@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import PWABadge from './PWABadge.tsx'
 import { ThemeToggle } from './components/theme-toggle'
 import { ThemeSwitcher } from './components/theme-switcher'
@@ -17,14 +17,11 @@ import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
 let jq: any = null
 
 function App() {
-  // Derive initial state from URL
-  const initialUrlState = useMemo(() => decodeStateFromUrl(), [])
-  
   // Local state for immediate UI updates (no debouncing)
-  const [jsonInput, setJsonInputLocal] = useState(initialUrlState.jsonInput)
-  const [jqFilter, setJqFilterLocal] = useState(initialUrlState.jqFilter)
-  const [appliedJqFilter, setAppliedJqFilter] = useState(initialUrlState.jqFilter)
-  const [activeTab, setActiveTabLocal] = useState(initialUrlState.activeTab)
+  const [jsonInput, setJsonInputLocal] = useState('')
+  const [jqFilter, setJqFilterLocal] = useState('.')
+  const [appliedJqFilter, setAppliedJqFilter] = useState('.')
+  const [activeTab, setActiveTabLocal] = useState<'input' | 'output'>('input')
   
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
@@ -33,6 +30,18 @@ function App() {
   const [showToast, setShowToast] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  // Load initial state from URL
+  useEffect(() => {
+    decodeStateFromUrl().then((initialUrlState) => {
+      setJsonInputLocal(initialUrlState.jsonInput)
+      setJqFilterLocal(initialUrlState.jqFilter)
+      setAppliedJqFilter(initialUrlState.jqFilter)
+      setActiveTabLocal(initialUrlState.activeTab)
+    }).catch((err) => {
+      console.warn('Failed to decode URL state:', err)
+    })
+  }, [])
 
   // Load jq-wasm dynamically
   useEffect(() => {
@@ -108,7 +117,7 @@ function App() {
 
   // Update URL when input changes or jq filter is applied
   useEffect(() => {
-    updateUrlState(jsonInput, appliedJqFilter, activeTab)
+    void updateUrlState(jsonInput, appliedJqFilter, activeTab)
   }, [jsonInput, appliedJqFilter, activeTab])
 
   // Handlers for immediate local state updates
@@ -123,7 +132,7 @@ function App() {
   const setActiveTab = (tab: 'input' | 'output') => {
     setActiveTabLocal(tab)
     // Update URL immediately for tab changes
-    updateUrlState(jsonInput, jqFilter, tab)
+    void updateUrlState(jsonInput, jqFilter, tab)
   }
 
   // Keyboard shortcut for help
