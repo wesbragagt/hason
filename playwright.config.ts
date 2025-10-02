@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
   retries: 0,
-  workers: 1,
+  workers: process.env.CI ? 2 : undefined, // Use 2 workers in CI, default locally
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:5173',
