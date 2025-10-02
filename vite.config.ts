@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -42,4 +43,20 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['jq-web'],
   },
+  assetsInclude: ['**/*.wasm'],
+  server: {
+    fs: {
+      allow: ['..']
+    }
+  },
+  test: {
+    environment: 'happy-dom',
+    setupFiles: ['./tests/setup.ts'],
+    globals: true,
+    server: {
+      deps: {
+        inline: ['jq-web']
+      }
+    }
+  }
 })

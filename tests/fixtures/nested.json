@@ -1,0 +1,81 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Alice Johnson",
+      "profile": {
+        "contact": {
+          "email": "alice@company.com",
+          "addresses": [
+            {
+              "type": "home",
+              "street": "123 Oak St",
+              "city": "Portland",
+              "zipcode": "97201"
+            },
+            {
+              "type": "work",
+              "street": "456 Pine Ave",
+              "city": "Portland", 
+              "zipcode": "97202"
+            }
+          ]
+        },
+        "preferences": {
+          "theme": "dark",
+          "notifications": true,
+          "language": "en"
+        }
+      },
+      "roles": ["admin", "user"],
+      "metadata": {
+        "created": "2023-01-15",
+        "lastLogin": "2024-10-01",
+        "loginCount": 142
+      }
+    },
+    {
+      "id": 2,
+      "name": "Bob Smith",
+      "profile": {
+        "contact": {
+          "email": "bob@company.com",
+          "addresses": [
+            {
+              "type": "home",
+              "street": "789 Elm St",
+              "city": "Seattle",
+              "zipcode": "98101"
+            }
+          ]
+        },
+        "preferences": {
+          "theme": "light",
+          "notifications": false,
+          "language": "es"
+        }
+      },
+      "roles": ["user"],
+      "metadata": {
+        "created": "2023-03-22",
+        "lastLogin": "2024-09-28",
+        "loginCount": 89
+      }
+    }
+  ],
+  "company": {
+    "name": "Tech Corp",
+    "departments": {
+      "engineering": {
+        "head": "Alice Johnson",
+        "size": 25,
+        "budget": 2500000
+      },
+      "marketing": {
+        "head": "Charlie Brown",
+        "size": 12,
+        "budget": 800000
+      }
+    }
+  }
+}

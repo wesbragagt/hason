@@ -1,26 +1,44 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import PWABadge from './PWABadge.tsx'
-import './App.css'
+import { ThemeToggle } from './components/theme-toggle'
+import { ThemeSwitcher } from './components/theme-switcher'
+import { HelpButton } from './components/help-button'
+import { HelpDrawer } from './components/help-drawer'
+import { ShareButton } from './components/share-button'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Split, TabletSmartphone, Copy, Check, CornerDownLeft } from 'lucide-react'
+import { cn, decodeStateFromUrl, updateUrlState } from '@/lib/utils'
 
 let jq: any = null
 
 function App() {
-  const [jsonInput, setJsonInput] = useState('')
-  const [jqFilter, setJqFilter] = useState('.')
+  // Derive initial state from URL
+  const initialUrlState = useMemo(() => decodeStateFromUrl(), [])
+  
+  // Local state for immediate UI updates (no debouncing)
+  const [jsonInput, setJsonInputLocal] = useState(initialUrlState.jsonInput)
+  const [jqFilter, setJqFilterLocal] = useState(initialUrlState.jqFilter)
+  const [appliedJqFilter, setAppliedJqFilter] = useState(initialUrlState.jqFilter)
+  const [activeTab, setActiveTabLocal] = useState(initialUrlState.activeTab)
+  
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
   const [jqLoaded, setJqLoaded] = useState(false)
   const [viewMode, setViewMode] = useState<'tabs' | 'split'>('tabs')
-  const [activeTab, setActiveTab] = useState<'input' | 'output'>('input')
   const [showToast, setShowToast] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
 
-  // Load jq-web dynamically
+  // Load jq-wasm dynamically
   useEffect(() => {
-    import('jq-web').then((module) => {
+    import('./lib/jq-wasm').then((module) => {
       jq = module.default
       setJqLoaded(true)
     }).catch((err) => {
-      console.error('Failed to load jq-web:', err)
+      console.error('Failed to load jq-wasm:', err)
       setJqLoaded(false)
     })
   }, [])
@@ -48,31 +66,30 @@ function App() {
         setOutput(JSON.stringify(result, null, 2))
         setError('')
       } else {
-        // Fallback for basic operations
-        try {
+        // Basic fallback for some common filters
+        if (filter.startsWith('.') && !filter.includes('|') && !filter.includes('[')) {
+          const keys = filter.substring(1).split('.')
           let result = parsedInput
-
-          // Handle some basic jq operations manually
-          if (filter.startsWith('.')) {
-            const path = filter.slice(1)
-            if (path) {
-              const keys = path.split('.')
-              for (const key of keys) {
-                if (key.includes('[') && key.includes(']')) {
-                  const [objKey, indexStr] = key.split('[')
-                  const index = parseInt(indexStr.replace(']', ''))
-                  result = objKey ? result[objKey][index] : result[index]
+          
+          for (const key of keys) {
+            if (key && result && typeof result === 'object') {
+              if (Array.isArray(result)) {
+                const index = parseInt(key)
+                if (!isNaN(index)) {
+                  result = result[index]
                 } else {
-                  result = result[key]
+                  result = result.map(item => item[key])
                 }
+              } else {
+                result = result[key]
               }
             }
           }
 
           setOutput(JSON.stringify(result, null, 2))
           setError('')
-        } catch (fallbackErr) {
-          setError('jq-web not loaded. Only basic operations like ".", ".key", ".array[0]" are supported.')
+        } else {
+          setError('jq-wasm not loaded. Only basic operations like ".", ".key", ".array[0]" are supported.')
           setOutput('')
         }
       }
@@ -82,161 +99,290 @@ function App() {
     }
   }
 
+  // Process JSON immediately when input changes or jq filter is applied
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      processJson(jsonInput, jqFilter)
-    }, 300)
+    processJson(jsonInput, appliedJqFilter)
+  }, [jsonInput, appliedJqFilter, jqLoaded])
 
-    return () => clearTimeout(timeoutId)
-  }, [jsonInput, jqFilter])
-
-  // Keyboard shortcuts
+  // Update URL when input changes or jq filter is applied
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+Shift+O: Toggle between input/output tabs (only in tabs mode)
-      if (e.ctrlKey && e.shiftKey && e.key === 'O') {
+    updateUrlState(jsonInput, appliedJqFilter, activeTab)
+  }, [jsonInput, appliedJqFilter, activeTab])
+
+  // Handlers for immediate local state updates
+  const setJsonInput = (value: string) => {
+    setJsonInputLocal(value)
+  }
+
+  const setJqFilter = (value: string) => {
+    setJqFilterLocal(value)
+  }
+
+  const setActiveTab = (tab: 'input' | 'output') => {
+    setActiveTabLocal(tab)
+    // Update URL immediately for tab changes
+    updateUrlState(jsonInput, jqFilter, tab)
+  }
+
+  // Keyboard shortcut for help
+  useEffect(() => {
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'H') {
         e.preventDefault()
-        if (viewMode === 'tabs') {
-          setActiveTab(prev => prev === 'input' ? 'output' : 'input')
-        }
-      }
-      
-      // Ctrl+Shift+I: Toggle between tabs and split view
-      if (e.ctrlKey && e.shiftKey && e.key === 'I') {
-        e.preventDefault()
-        setViewMode(prev => prev === 'tabs' ? 'split' : 'tabs')
+        setHelpOpen(prev => !prev)
       }
     }
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [viewMode])
+    document.addEventListener('keydown', handleKeydown)
+    return () => document.removeEventListener('keydown', handleKeydown)
+  }, [])
 
-  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const pastedText = e.clipboardData.getData('text')
-    setJsonInput(pastedText)
-    
-    // Auto-switch to output tab after paste if valid JSON
-    try {
-      JSON.parse(pastedText)
-      if (viewMode === 'tabs') {
-        setTimeout(() => {
-          setActiveTab('output')
-          setShowToast(true)
-          setTimeout(() => setShowToast(false), 2000)
-        }, 150)
+  const handlePaste = () => {
+    setTimeout(() => {
+      if (viewMode === 'tabs' && activeTab === 'input') {
+        setActiveTab('output')
+        setShowToast(true)
+        setTimeout(() => setShowToast(false), 2000)
       }
-    } catch {
-      // Stay on input tab if JSON is invalid
+    }, 100)
+  }
+
+  // Handle Enter key for jq filter submission
+  const handleJqFilterKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      // Apply the filter - this will trigger processing via useEffect
+      setAppliedJqFilter(jqFilter)
+    }
+  }
+
+  const handleCopyOutput = async () => {
+    if (!output) return
+    
+    try {
+      await navigator.clipboard.writeText(output)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
     }
   }
 
   return (
-    <div className="app">
-      <header className="header">
-        <h1 className="title">hason</h1>
-        <p className="subtitle">JSON Formatter with jq Syntax</p>
-      </header>
-
-      <div className="filter-controls">
-        <div className="filter-row">
-          <label htmlFor="jq-filter" className="filter-label">jq Filter:</label>
-          <button
-            className="view-toggle-btn"
-            onClick={() => setViewMode(prev => prev === 'tabs' ? 'split' : 'tabs')}
-            title="Toggle view mode (Ctrl+Shift+I)"
-          >
-            {viewMode === 'tabs' ? '⊞ Split View' : '⊟ Tab View'}
-          </button>
+    <div className="min-h-screen w-full flex flex-col bg-background text-foreground overflow-hidden">
+      {/* Dynamic background overlay that adapts to theme */}
+      <div className="absolute inset-0 opacity-30 pointer-events-none bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5" />
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: `
+          radial-gradient(circle at 20% 80%, hsl(var(--primary) / 0.05) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, hsl(var(--accent) / 0.05) 0%, transparent 50%)
+        `
+      }} />
+      
+      {/* Header */}
+      <div className="relative z-10 text-center p-4 pb-3 bg-gradient-to-b from-primary/5 to-transparent">
+        <div className="flex justify-between items-center">
+          <div className="flex-1" />
+          <div className="flex-1">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent drop-shadow-lg tracking-tight">
+              hason
+            </h1>
+            <p className="text-muted-foreground text-sm font-light mt-1">
+              Your friendly neighbor json formatter
+            </p>
+          </div>
+          <div className="flex-1 flex justify-end gap-2">
+            <HelpButton onClick={() => setHelpOpen(true)} />
+            <ThemeSwitcher />
+            <ThemeToggle />
+          </div>
         </div>
-        <input
-          id="jq-filter"
-          type="text"
-          value={jqFilter}
-          onChange={(e) => setJqFilter(e.target.value)}
-          className="filter-input"
-          placeholder="Enter jq filter (e.g., .data, .users[0], .[] | select(.active))"
-        />
       </div>
 
-      {viewMode === 'tabs' ? (
-        <div className="tabs-container">
-          <div className="tabs-header">
-            <button
-              className={`tab ${activeTab === 'input' ? 'active' : ''}`}
-              onClick={() => setActiveTab('input')}
-            >
-              JSON Input
-            </button>
-            <button
-              className={`tab ${activeTab === 'output' ? 'active' : ''}`}
-              onClick={() => setActiveTab('output')}
-            >
-              Output
-            </button>
-            <span className="keyboard-hint">Ctrl+Shift+O to switch tabs</span>
-          </div>
-          
-          <div className="tab-content">
-            {activeTab === 'input' ? (
-              <div className="panel input-panel">
-                <textarea
+      {/* Filter controls */}
+      <div className="relative z-10 px-4 py-2">
+        <Card className="bg-card/80 backdrop-blur-lg border-border">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                jq filter:
+              </label>
+              <Input
+                value={jqFilter}
+                onChange={(e) => setJqFilter(e.target.value)}
+                onKeyDown={handleJqFilterKeyDown}
+                className="flex-1 bg-background border-border/60 focus:border-primary focus:bg-background text-foreground placeholder:text-muted-foreground font-mono"
+                placeholder="Enter jq filter..."
+              />
+              <Button
+                onClick={() => setAppliedJqFilter(jqFilter)}
+                variant="outline"
+                size="sm"
+                className="bg-primary/10 border-border hover:bg-primary/20"
+                title="Apply jq filter"
+              >
+                <CornerDownLeft className="h-4 w-4" />
+              </Button>
+              <ShareButton
+                jsonInput={jsonInput}
+                jqFilter={appliedJqFilter}
+                activeTab={activeTab}
+              />
+              <Button
+                onClick={() => setViewMode(viewMode === 'tabs' ? 'split' : 'tabs')}
+                variant="outline"
+                size="sm"
+                className="bg-primary/10 border-border hover:bg-primary/20"
+              >
+                {viewMode === 'tabs' ? <Split className="h-4 w-4" /> : <TabletSmartphone className="h-4 w-4" />}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main editor */}
+      <div className="relative z-10 flex-1 px-4 pb-4 overflow-hidden">
+        {viewMode === 'tabs' ? (
+          <Card className="h-full bg-card/80 backdrop-blur-lg border-purple-500/30">
+            <CardHeader className="pb-2 px-4 pt-3">
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setActiveTab('input')}
+                  variant={activeTab === 'input' ? 'default' : 'ghost'}
+                  size="sm"
+                  className={cn(
+                    'transition-all',
+                    activeTab === 'input' 
+                      ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
+                      : 'hover:bg-primary/20'
+                  )}
+                >
+                  JSON Input
+                </Button>
+                <Button
+                  onClick={() => setActiveTab('output')}
+                  variant={activeTab === 'output' ? 'default' : 'ghost'}
+                  size="sm"
+                  className={cn(
+                    'transition-all',
+                    activeTab === 'output' 
+                      ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
+                      : 'hover:bg-primary/20'
+                  )}
+                >
+                  Output
+                </Button>
+                {activeTab === 'output' && output && (
+                  <Button
+                    onClick={handleCopyOutput}
+                    variant="ghost"
+                    size="sm"
+                    className="ml-auto hover:bg-primary/20"
+                    title="Copy output to clipboard"
+                  >
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="p-0 h-full">
+              <div className="h-full flex flex-col">
+                {activeTab === 'input' && (
+                  <Textarea
+                    value={jsonInput}
+                    onChange={(e) => setJsonInput(e.target.value)}
+                    onPaste={handlePaste}
+                    className="flex-1 border-0 bg-transparent resize-none font-mono text-sm p-4 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    placeholder="Paste your JSON here..."
+                    spellCheck={false}
+                  />
+                )}
+                {activeTab === 'output' && (
+                  <div className="flex-1 p-4 overflow-auto">
+                    {error ? (
+                      <div className="text-destructive font-mono text-sm bg-destructive/10 p-3 rounded-lg border border-destructive/20">
+                        {error}
+                      </div>
+                    ) : (
+                      <pre className="font-mono text-sm text-foreground whitespace-pre-wrap break-words">
+                        {output}
+                      </pre>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="h-full grid grid-cols-2 gap-4 max-h-[calc(100vh-160px)]">
+            <Card className="bg-card/80 backdrop-blur-lg border-border flex flex-col">
+              <CardHeader className="pb-2 px-4 pt-3 flex-shrink-0">
+                <CardTitle className="text-lg">JSON Input</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 flex-1 overflow-hidden">
+                <Textarea
                   value={jsonInput}
                   onChange={(e) => setJsonInput(e.target.value)}
                   onPaste={handlePaste}
-                  className="json-textarea"
+                  className="w-full border-0 bg-transparent resize-none font-mono text-sm p-4 focus-visible:ring-0 focus-visible:ring-offset-0 overflow-auto whitespace-pre-wrap break-words"
+                  style={{ 
+                    height: 'calc(85vh - 160px)'
+                  }}
                   placeholder="Paste your JSON here..."
                   spellCheck={false}
                 />
-              </div>
-            ) : (
-              <div className="panel output-panel">
-                <div className="output-content">
-                  {error ? (
-                    <div className="error-message">{error}</div>
-                  ) : (
-                    <pre className="json-output">{output}</pre>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card/80 backdrop-blur-lg border-border flex flex-col">
+              <CardHeader className="pb-2 px-4 pt-3 flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Output</CardTitle>
+                  {output && (
+                    <Button
+                      onClick={handleCopyOutput}
+                      variant="ghost"
+                      size="sm"
+                      className="hover:bg-primary/20"
+                      title="Copy output to clipboard"
+                    >
+                      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
                   )}
                 </div>
-              </div>
-            )}
+              </CardHeader>
+              <CardContent className="p-4 flex-1 overflow-auto">
+                <div 
+                  style={{ 
+                    height: 'calc(85vh - 160px)'
+                  }}
+                  className="overflow-auto"
+                >
+                  {error ? (
+                    <div className="text-destructive font-mono text-sm bg-destructive/10 p-3 rounded-lg border border-destructive/20">
+                      {error}
+                    </div>
+                  ) : (
+                    <pre className="font-mono text-sm text-foreground whitespace-pre-wrap break-words">
+                      {output}
+                    </pre>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </div>
-      ) : (
-        <div className="editor-container">
-          <div className="panel input-panel">
-            <div className="panel-header">
-              <h3>JSON Input</h3>
-            </div>
-            <textarea
-              value={jsonInput}
-              onChange={(e) => setJsonInput(e.target.value)}
-              onPaste={handlePaste}
-              className="json-textarea"
-              placeholder="Paste your JSON here..."
-              spellCheck={false}
-            />
-          </div>
+        )}
+      </div>
 
-          <div className="panel output-panel">
-            <div className="panel-header">
-              <h3>Output</h3>
-            </div>
-            <div className="output-content">
-              {error ? (
-                <div className="error-message">{error}</div>
-              ) : (
-                <pre className="json-output">{output}</pre>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Toast notification */}
       {showToast && (
-        <div className="toast">Switched to output view</div>
+        <div className="fixed bottom-4 right-4 z-50 bg-card border border-border text-card-foreground px-4 py-2 rounded-xl shadow-lg backdrop-blur-sm animate-in slide-in-from-bottom-2">
+          Switched to output view
+        </div>
       )}
 
+      <HelpDrawer open={helpOpen} onOpenChange={setHelpOpen} />
       <PWABadge />
     </div>
   )

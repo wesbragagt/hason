@@ -1,6 +1,5 @@
-import './PWABadge.css'
-
 import { useRegisterSW } from 'virtual:pwa-register/react'
+import { Button } from '@/components/ui/button'
 
 function PWABadge() {
   // check for updates every hour
@@ -32,18 +31,33 @@ function PWABadge() {
   }
 
   return (
-    <div className="PWABadge" role="alert" aria-labelledby="toast-message">
+    <div className="fixed bottom-4 left-4 z-50" role="alert" aria-labelledby="toast-message">
       { (offlineReady || needRefresh)
       && (
-        <div className="PWABadge-toast">
-          <div className="PWABadge-message">
+        <div className="bg-card border border-border text-card-foreground p-4 rounded-xl shadow-lg backdrop-blur-sm max-w-sm">
+          <div className="mb-3">
             { offlineReady
-              ? <span id="toast-message">App ready to work offline</span>
-              : <span id="toast-message">New content available, click on reload button to update.</span>}
+              ? <span id="toast-message" className="text-sm">App ready to work offline</span>
+              : <span id="toast-message" className="text-sm">New content available, click on reload button to update.</span>}
           </div>
-          <div className="PWABadge-buttons">
-            { needRefresh && <button className="PWABadge-toast-button" onClick={() => updateServiceWorker(true)}>Reload</button> }
-            <button className="PWABadge-toast-button" onClick={() => close()}>Close</button>
+          <div className="flex gap-2">
+            { needRefresh && 
+              <Button 
+                size="sm" 
+                onClick={() => updateServiceWorker(true)}
+                className="bg-primary hover:bg-primary/90"
+              >
+                Reload
+              </Button> 
+            }
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => close()}
+              className="border-border hover:bg-accent"
+            >
+              Close
+            </Button>
           </div>
         </div>
       )}

@@ -167,3 +167,4 @@ vite.config.ts.timestamp-*
 
 # Playwright
 .playwright-mcp
+.direnv

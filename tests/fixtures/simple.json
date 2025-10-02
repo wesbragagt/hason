@@ -1,0 +1,12 @@
+{
+  "name": "John Doe",
+  "age": 30,
+  "city": "New York",
+  "active": true,
+  "score": 85.5,
+  "tags": ["developer", "javascript", "react"],
+  "profile": {
+    "email": "john@example.com",
+    "phone": "555-0123"
+  }
+}

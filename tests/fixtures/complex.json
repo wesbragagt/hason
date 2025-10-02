@@ -1,0 +1,134 @@
+{
+  "api": {
+    "version": "2.1.0",
+    "endpoints": [
+      {
+        "path": "/users",
+        "methods": ["GET", "POST"],
+        "parameters": {
+          "query": ["limit", "offset", "sort"],
+          "body": ["name", "email", "password"]
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {"type": "array"},
+                "pagination": {
+                  "type": "object",
+                  "properties": {
+                    "total": {"type": "number"},
+                    "page": {"type": "number"},
+                    "limit": {"type": "number"}
+                  }
+                }
+              }
+            }
+          },
+          "400": {"description": "Bad Request"},
+          "401": {"description": "Unauthorized"}
+        }
+      },
+      {
+        "path": "/products",
+        "methods": ["GET", "POST", "PUT", "DELETE"],
+        "parameters": {
+          "query": ["category", "price_min", "price_max", "in_stock"],
+          "body": ["name", "description", "price", "category_id", "inventory"]
+        },
+        "responses": {
+          "200": {"description": "Success"},
+          "404": {"description": "Not Found"},
+          "422": {"description": "Validation Error"}
+        }
+      }
+    ]
+  },
+  "database": {
+    "connections": [
+      {
+        "name": "primary",
+        "type": "postgresql",
+        "config": {
+          "host": "db.example.com",
+          "port": 5432,
+          "database": "production",
+          "pool": {
+            "min": 2,
+            "max": 20,
+            "idle_timeout": 30000
+          }
+        },
+        "tables": [
+          {
+            "name": "users",
+            "columns": [
+              {"name": "id", "type": "serial", "primary": true},
+              {"name": "email", "type": "varchar(255)", "unique": true},
+              {"name": "created_at", "type": "timestamp", "default": "now()"}
+            ],
+            "indexes": [
+              {"name": "idx_users_email", "columns": ["email"]},
+              {"name": "idx_users_created", "columns": ["created_at"]}
+            ]
+          },
+          {
+            "name": "products",
+            "columns": [
+              {"name": "id", "type": "serial", "primary": true},
+              {"name": "name", "type": "varchar(100)", "nullable": false},
+              {"name": "price", "type": "decimal(10,2)", "nullable": false},
+              {"name": "category_id", "type": "integer", "foreign_key": "categories.id"}
+            ]
+          }
+        ]
+      },
+      {
+        "name": "analytics",
+        "type": "clickhouse", 
+        "config": {
+          "host": "analytics.example.com",
+          "port": 8123,
+          "database": "events"
+        }
+      }
+    ]
+  },
+  "monitoring": {
+    "metrics": [
+      {
+        "name": "http_requests_total",
+        "type": "counter",
+        "labels": ["method", "endpoint", "status"],
+        "values": [
+          {"labels": {"method": "GET", "endpoint": "/users", "status": "200"}, "value": 15420},
+          {"labels": {"method": "POST", "endpoint": "/users", "status": "201"}, "value": 892},
+          {"labels": {"method": "GET", "endpoint": "/products", "status": "200"}, "value": 8734}
+        ]
+      },
+      {
+        "name": "response_time_seconds",
+        "type": "histogram",
+        "buckets": [0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0],
+        "values": [
+          {"bucket": "0.1", "count": 5420},
+          {"bucket": "0.25", "count": 8932},
+          {"bucket": "0.5", "count": 12456}
+        ]
+      }
+    ],
+    "alerts": [
+      {
+        "name": "high_error_rate",
+        "condition": "rate(http_requests_total{status=~\"5..\"}[5m]) > 0.05",
+        "severity": "warning",
+        "annotations": {
+          "summary": "High error rate detected",
+          "description": "Error rate is above 5% for 5 minutes"
+        }
+      }
+    ]
+  }
+}

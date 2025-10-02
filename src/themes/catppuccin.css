@@ -1,0 +1,56 @@
+/* Catppuccin Theme - Light Mode */
+.catppuccin {
+  --background: oklch(0.9578 0.0058 264.5321) !important;
+  --foreground: oklch(0.4355 0.0430 279.3250) !important;
+  --card: oklch(1.0000 0 0) !important;
+  --card-foreground: oklch(0.4355 0.0430 279.3250) !important;
+  --popover: oklch(0.8575 0.0145 268.4756) !important;
+  --popover-foreground: oklch(0.4355 0.0430 279.3250) !important;
+  --primary: oklch(0.5547 0.2503 297.0156) !important;
+  --primary-foreground: oklch(1.0000 0 0) !important;
+  --secondary: oklch(0.8575 0.0145 268.4756) !important;
+  --secondary-foreground: oklch(0.4355 0.0430 279.3250) !important;
+  --muted: oklch(0.9060 0.0117 264.5071) !important;
+  --muted-foreground: oklch(0.5471 0.0343 279.0837) !important;
+  --accent: oklch(0.6820 0.1448 235.3822) !important;
+  --accent-foreground: oklch(1.0000 0 0) !important;
+  --destructive: oklch(0.5505 0.2155 19.8095) !important;
+  --destructive-foreground: oklch(1.0000 0 0) !important;
+  --border: oklch(0.8083 0.0174 271.1982) !important;
+  --input: oklch(0.8575 0.0145 268.4756) !important;
+  --ring: oklch(0.5547 0.2503 297.0156) !important;
+  --radius: 0.35rem !important;
+  --chart-1: oklch(0.5547 0.2503 297.0156) !important;
+  --chart-2: oklch(0.6820 0.1448 235.3822) !important;
+  --chart-3: oklch(0.6250 0.1772 140.4448) !important;
+  --chart-4: oklch(0.6920 0.2041 42.4293) !important;
+  --chart-5: oklch(0.7141 0.1045 33.0967) !important;
+}
+
+/* Catppuccin Theme - Dark Mode */
+.catppuccin.dark {
+  --background: oklch(0.2155 0.0254 284.0647) !important;
+  --foreground: oklch(0.8787 0.0426 272.2767) !important;
+  --card: oklch(0.2429 0.0304 283.9110) !important;
+  --card-foreground: oklch(0.8787 0.0426 272.2767) !important;
+  --popover: oklch(0.4037 0.0320 280.1520) !important;
+  --popover-foreground: oklch(0.8787 0.0426 272.2767) !important;
+  --primary: oklch(0.7871 0.1187 304.7693) !important;
+  --primary-foreground: oklch(0.2429 0.0304 283.9110) !important;
+  --secondary: oklch(0.4765 0.0340 278.6430) !important;
+  --secondary-foreground: oklch(0.8787 0.0426 272.2767) !important;
+  --muted: oklch(0.2973 0.0294 276.2144) !important;
+  --muted-foreground: oklch(0.7510 0.0396 273.9320) !important;
+  --accent: oklch(0.8467 0.0833 210.2545) !important;
+  --accent-foreground: oklch(0.2429 0.0304 283.9110) !important;
+  --destructive: oklch(0.7556 0.1297 2.7642) !important;
+  --destructive-foreground: oklch(0.2429 0.0304 283.9110) !important;
+  --border: oklch(0.3240 0.0319 281.9784) !important;
+  --input: oklch(0.3240 0.0319 281.9784) !important;
+  --ring: oklch(0.7871 0.1187 304.7693) !important;
+  --chart-1: oklch(0.7871 0.1187 304.7693) !important;
+  --chart-2: oklch(0.8467 0.0833 210.2545) !important;
+  --chart-3: oklch(0.8577 0.1092 142.7153) !important;
+  --chart-4: oklch(0.8237 0.1015 52.6294) !important;
+  --chart-5: oklch(0.9226 0.0238 30.4919) !important;
+}

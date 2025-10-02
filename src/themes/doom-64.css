@@ -1,0 +1,57 @@
+/* Doom 64 Theme - Light Mode */
+.doom-64 {
+  --background: oklch(0.8452 0 0) !important;
+  --foreground: oklch(0.2393 0 0) !important;
+  --card: oklch(0.7572 0 0) !important;
+  --card-foreground: oklch(0.2393 0 0) !important;
+  --popover: oklch(0.7572 0 0) !important;
+  --popover-foreground: oklch(0.2393 0 0) !important;
+  --primary: oklch(0.5016 0.1887 27.4816) !important;
+  --primary-foreground: oklch(1.0000 0 0) !important;
+  --secondary: oklch(0.4955 0.0896 126.1858) !important;
+  --secondary-foreground: oklch(1.0000 0 0) !important;
+  --muted: oklch(0.7826 0 0) !important;
+  --muted-foreground: oklch(0.4091 0 0) !important;
+  --accent: oklch(0.5880 0.0993 245.7394) !important;
+  --accent-foreground: oklch(1.0000 0 0) !important;
+  --destructive: oklch(0.7076 0.1975 46.4558) !important;
+  --destructive-foreground: oklch(0 0 0) !important;
+  --border: oklch(0.4313 0 0) !important;
+  --input: oklch(0.4313 0 0) !important;
+  --ring: oklch(0.5016 0.1887 27.4816) !important;
+  --radius: 0px !important;
+  --chart-1: oklch(0.5016 0.1887 27.4816) !important;
+  --chart-2: oklch(0.4955 0.0896 126.1858) !important;
+  --chart-3: oklch(0.5880 0.0993 245.7394) !important;
+  --chart-4: oklch(0.7076 0.1975 46.4558) !important;
+  --chart-5: oklch(0.5656 0.0431 40.4319) !important;
+}
+
+/* Doom 64 Theme - Dark Mode */
+.doom-64.dark {
+  --background: oklch(0.2178 0 0) !important;
+  --foreground: oklch(0.9067 0 0) !important;
+  --card: oklch(0.2850 0 0) !important;
+  --card-foreground: oklch(0.9067 0 0) !important;
+  --popover: oklch(0.2850 0 0) !important;
+  --popover-foreground: oklch(0.9067 0 0) !important;
+  --primary: oklch(0.6083 0.2090 27.0276) !important;
+  --primary-foreground: oklch(1.0000 0 0) !important;
+  --secondary: oklch(0.6423 0.1467 133.0145) !important;
+  --secondary-foreground: oklch(0 0 0) !important;
+  --muted: oklch(0.2645 0 0) !important;
+  --muted-foreground: oklch(0.7058 0 0) !important;
+  --accent: oklch(0.7482 0.1235 244.7492) !important;
+  --accent-foreground: oklch(0 0 0) !important;
+  --destructive: oklch(0.7839 0.1719 68.0943) !important;
+  --destructive-foreground: oklch(0 0 0) !important;
+  --border: oklch(0.4091 0 0) !important;
+  --input: oklch(0.4091 0 0) !important;
+  --ring: oklch(0.6083 0.2090 27.0276) !important;
+  --chart-1: oklch(0.6083 0.2090 27.0276) !important;
+  --chart-2: oklch(0.6423 0.1467 133.0145) !important;
+  --chart-3: oklch(0.7482 0.1235 244.7492) !important;
+  --chart-4: oklch(0.7839 0.1719 68.0943) !important;
+  --chart-5: oklch(0.6471 0.0334 40.7963) !important;
+  --radius: 0px !important;
+}
