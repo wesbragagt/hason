@@ -40,21 +40,21 @@ async function loadModule(): Promise<JQModule> {
         script.src = `/${await getVersionedFilename('jq.js')}`;
         script.async = true;
       
-      script.onload = async () => {
-        try {
-          // The versioned jq JS file defines a global jqModule function
-          if (typeof (window as any).jqModule === 'function') {
-            const wasmModule = await (window as any).jqModule();
-            jqModule = wasmModule as JQModule;
-            resolve(jqModule);
-          } else {
-            reject(new Error('jqModule function not found on window'));
+        script.onload = async () => {
+          try {
+            // The versioned jq JS file defines a global jqModule function
+            if (typeof (window as any).jqModule === 'function') {
+              const wasmModule = await (window as any).jqModule();
+              jqModule = wasmModule as JQModule;
+              resolve(jqModule);
+            } else {
+              reject(new Error('jqModule function not found on window'));
+            }
+          } catch (error) {
+            reject(new Error(`Failed to initialize WASM module: ${String(error)}`));
           }
-        } catch (error) {
-          reject(new Error(`Failed to initialize WASM module: ${String(error)}`));
-        }
-      };
-      
+        };
+        
         script.onerror = () => {
           reject(new Error(`Failed to load versioned jq script`));
         };
@@ -71,90 +71,14 @@ async function loadModule(): Promise<JQModule> {
   return modulePromise;
 }
 
-// jq-web compatible API
-export const jq = {
-  // Process JSON with a jq filter (returns parsed result)
-  async json(input: any, filter: string): Promise<any> {
-    const module = await loadModule();
-    
-    return new Promise((resolve, reject) => {
-      try {
-        // For now, implement basic filters manually
-        // TODO: Replace with actual WASM jq processing
-        let result = input;
-        
-        if (filter === '.') {
-          resolve(result);
-          return;
-        }
-        
-        // Handle basic property access
-        if (filter.startsWith('.') && !filter.includes('|') && !filter.includes('[')) {
-          const path = filter.slice(1);
-          if (path) {
-            const keys = path.split('.');
-            for (const key of keys) {
-              if (result && typeof result === 'object' && key in result) {
-                result = result[key];
-              } else {
-                reject(new Error(`Property '${key}' not found`));
-                return;
-              }
-            }
-          }
-          resolve(result);
-          return;
-        }
-        
-        // Handle array indexing
-        if (filter.includes('[') && filter.includes(']')) {
-          const match = filter.match(/^\.([^[]*)\[(\d+)\]$/);
-          if (match) {
-            const [, prop, indexStr] = match;
-            const index = parseInt(indexStr);
-            
-            let target = result;
-            if (prop) {
-              target = result[prop];
-            }
-            
-            if (Array.isArray(target) && index >= 0 && index < target.length) {
-              resolve(target[index]);
-              return;
-            } else {
-              reject(new Error(`Array index ${index} out of bounds`));
-              return;
-            }
-          }
-        }
-        
-        // For complex filters, use the WASM module
-        module.jq.process(input, filter)
-          .then(resolve)
-          .catch(reject);
-        
-      } catch (error) {
-        reject(error);
-      }
-    });
-  },
+// Main API function - mimics jq-web API
+export async function promised(input: any, filter: string): Promise<any> {
+  const module = await loadModule();
   
-  // Process JSON with a jq filter (returns raw string)
-  async raw(input: any, filter: string): Promise<string> {
-    const result = await this.json(input, filter);
-    return typeof result === 'string' ? result : JSON.stringify(result);
+  try {
+    const result = await module.jq.process(input, filter);
+    return result;
+  } catch (error) {
+    throw error;
   }
-};
-
-// Promise-based API (jq-web compatibility)
-export const promised = {
-  json: (input: any, filter: string) => jq.json(input, filter),
-  raw: (input: any, filter: string) => jq.raw(input, filter)
-};
-
-// Default export for compatibility
-export default {
-  json: (input: any, filter: string) => jq.json(input, filter),
-  raw: (input: any, filter: string) => jq.raw(input, filter),
-  promised
-};
+}
