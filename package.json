@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "typecheck": "tsc --noEmit",
     "check": "oxlint --type-aware src tests",
     "lint": "oxlint --type-aware src tests",
     "preview": "vite preview",

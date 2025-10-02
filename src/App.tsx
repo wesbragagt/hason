@@ -32,17 +32,22 @@ function App() {
   const [helpOpen, setHelpOpen] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  // Load initial state from URL
+  // Load initial state from URL (non-blocking)
   useEffect(() => {
+    // Set URL state as loaded immediately so app doesn't wait
+    setUrlStateLoaded(true)
+    
+    // Try to load URL state in background without blocking
     decodeStateFromUrl().then((initialUrlState) => {
-      setJsonInputLocal(initialUrlState.jsonInput)
-      setJqFilterLocal(initialUrlState.jqFilter)
-      setAppliedJqFilter(initialUrlState.jqFilter)
-      setActiveTabLocal(initialUrlState.activeTab)
-      setUrlStateLoaded(true)
+      // Only apply URL state if there's actually data to load
+      if (initialUrlState.jsonInput || initialUrlState.jqFilter !== '.') {
+        setJsonInputLocal(initialUrlState.jsonInput)
+        setJqFilterLocal(initialUrlState.jqFilter)
+        setAppliedJqFilter(initialUrlState.jqFilter)
+        setActiveTabLocal(initialUrlState.activeTab)
+      }
     }).catch((err) => {
       console.warn('Failed to decode URL state:', err)
-      setUrlStateLoaded(true)
     })
   }, [])
 
