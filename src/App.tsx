@@ -1,36 +1,134 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import appLogo from '/favicon.svg'
+import { useState, useEffect } from 'react'
+import jq from 'jq-web'
 import PWABadge from './PWABadge.tsx'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [jsonInput, setJsonInput] = useState('')
+  const [jqFilter, setJqFilter] = useState('.')
+  const [output, setOutput] = useState('')
+  const [error, setError] = useState('')
+
+  const processJson = async (input: string, filter: string) => {
+    if (!input.trim()) {
+      setOutput('')
+      setError('')
+      return
+    }
+
+    try {
+      const parsedInput = JSON.parse(input)
+
+      // Handle basic jq filters without the library for now
+      if (filter === '.') {
+        setOutput(JSON.stringify(parsedInput, null, 2))
+        setError('')
+        return
+      }
+
+      // Try to use jq-web if available
+      if (jq && jq.promised && jq.promised.json) {
+        const result = await jq.promised.json(parsedInput, filter)
+        setOutput(JSON.stringify(result, null, 2))
+        setError('')
+      } else {
+        // Fallback for basic operations
+        try {
+          let result = parsedInput
+
+          // Handle some basic jq operations manually
+          if (filter.startsWith('.')) {
+            const path = filter.slice(1)
+            if (path) {
+              const keys = path.split('.')
+              for (const key of keys) {
+                if (key.includes('[') && key.includes(']')) {
+                  const [objKey, indexStr] = key.split('[')
+                  const index = parseInt(indexStr.replace(']', ''))
+                  result = objKey ? result[objKey][index] : result[index]
+                } else {
+                  result = result[key]
+                }
+              }
+            }
+          }
+
+          setOutput(JSON.stringify(result, null, 2))
+          setError('')
+        } catch (fallbackErr) {
+          setError('jq-web not loaded. Only basic operations like ".", ".key", ".array[0]" are supported.')
+          setOutput('')
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid JSON or jq filter')
+      setOutput('')
+    }
+  }
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      processJson(jsonInput, jqFilter)
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [jsonInput, jqFilter])
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pastedText = e.clipboardData.getData('text')
+    setJsonInput(pastedText)
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={appLogo} className="logo" alt="hason logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="app">
+      <header className="header">
+        <h1 className="title">hason</h1>
+        <p className="subtitle">JSON Formatter with jq Syntax</p>
+      </header>
+
+      <div className="filter-controls">
+        <label htmlFor="jq-filter" className="filter-label">jq Filter:</label>
+        <input
+          id="jq-filter"
+          type="text"
+          value={jqFilter}
+          onChange={(e) => setJqFilter(e.target.value)}
+          className="filter-input"
+          placeholder="Enter jq filter (e.g., .data, .users[0], .[] | select(.active))"
+        />
       </div>
-      <h1>hason</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+
+      <div className="editor-container">
+        <div className="panel input-panel">
+          <div className="panel-header">
+            <h3>JSON Input</h3>
+          </div>
+          <textarea
+            value={jsonInput}
+            onChange={(e) => setJsonInput(e.target.value)}
+            onPaste={handlePaste}
+            className="json-textarea"
+            placeholder="Paste your JSON here..."
+            spellCheck={false}
+          />
+        </div>
+
+        <div className="panel output-panel">
+          <div className="panel-header">
+            <h3>Output</h3>
+          </div>
+          <div className="output-content">
+            {error ? (
+              <div className="error-message">{error}</div>
+            ) : (
+              <pre className="json-output">{output}</pre>
+            )}
+          </div>
+        </div>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+
       <PWABadge />
-    </>
+    </div>
   )
 }
 
