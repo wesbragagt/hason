@@ -31,13 +31,14 @@ async function loadModule(): Promise<JQModule> {
     return modulePromise;
   }
   
-  modulePromise = new Promise(async (resolve, reject) => {
-    try {
-      // Load the jq WASM module from the public directory
-      // Use versioned filename for better cache control
-      const script = document.createElement('script');
-      script.src = `/${await getVersionedFilename('jq.js')}`;
-      script.async = true;
+  modulePromise = new Promise((resolve, reject) => {
+    const loadScript = async () => {
+      try {
+        // Load the jq WASM module from the public directory
+        // Use versioned filename for better cache control
+        const script = document.createElement('script');
+        script.src = `/${await getVersionedFilename('jq.js')}`;
+        script.async = true;
       
       script.onload = async () => {
         try {
@@ -50,18 +51,21 @@ async function loadModule(): Promise<JQModule> {
             reject(new Error('jqModule function not found on window'));
           }
         } catch (error) {
-          reject(new Error(`Failed to initialize WASM module: ${error}`));
+          reject(new Error(`Failed to initialize WASM module: ${String(error)}`));
         }
       };
       
-      script.onerror = () => {
-        reject(new Error(`Failed to load versioned jq script`));
-      };
-      
-      document.head.appendChild(script);
-    } catch (error) {
-      reject(new Error(`Failed to load jq WASM module: ${error}`));
-    }
+        script.onerror = () => {
+          reject(new Error(`Failed to load versioned jq script`));
+        };
+        
+        document.head.appendChild(script);
+      } catch (error) {
+        reject(new Error(`Failed to load jq WASM module: ${String(error)}`));
+      }
+    };
+    
+    void loadScript();
   });
   
   return modulePromise;
@@ -144,13 +148,13 @@ export const jq = {
 
 // Promise-based API (jq-web compatibility)
 export const promised = {
-  json: jq.json,
-  raw: jq.raw
+  json: (input: any, filter: string) => jq.json(input, filter),
+  raw: (input: any, filter: string) => jq.raw(input, filter)
 };
 
 // Default export for compatibility
 export default {
-  json: jq.json,
-  raw: jq.raw,
+  json: (input: any, filter: string) => jq.json(input, filter),
+  raw: (input: any, filter: string) => jq.raw(input, filter),
   promised
 };

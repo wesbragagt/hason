@@ -1,0 +1,12 @@
+{
+  "rules": {},
+  "env": {
+    "browser": true,
+    "es2022": true
+  },
+  "globals": {},
+  "settings": {},
+  "plugins": ["typescript", "react", "react-hooks"],
+  "jsx": true,
+  "tsconfig": "tsconfig.json"
+}

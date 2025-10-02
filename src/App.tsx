@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import PWABadge from './PWABadge.tsx'
 import { ThemeToggle } from './components/theme-toggle'
 import { ThemeSwitcher } from './components/theme-switcher'
@@ -101,7 +101,7 @@ function App() {
 
   // Process JSON immediately when input changes or jq filter is applied
   useEffect(() => {
-    processJson(jsonInput, appliedJqFilter)
+    void processJson(jsonInput, appliedJqFilter)
   }, [jsonInput, appliedJqFilter, jqLoaded])
 
   // Update URL when input changes or jq filter is applied

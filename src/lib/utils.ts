@@ -66,7 +66,7 @@ export function decodeStateFromUrl(): { jsonInput: string; jqFilter: string; act
           const directData = decodeURIComponent(dataParam)
           JSON.parse(directData) // Validate it's valid JSON
           jsonInput = directData
-        } catch (fallbackErr) {
+        } catch {
           console.warn('Invalid data in URL parameter, ignoring:', err)
         }
       }

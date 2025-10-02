@@ -1,0 +1,31 @@
+# Build outputs
+dist/
+build/
+result/
+
+# Dependencies
+node_modules/
+
+# Generated files
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Cache directories
+.cache/
+.parcel-cache/
+
+# Test reports
+test-results/
+playwright-report/
