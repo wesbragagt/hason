@@ -41,14 +41,14 @@ export const testCases = {
 };
 
 export const commonSelectors = {
-  jsonInput: '[data-testid="json-input-textarea"]',
+  jsonInput: '[data-testid="json-input-textarea"], [data-testid="json-input-textarea-split"]',
   jqFilterInput: '[data-testid="jq-filter-input"]',
   applyFilterButton: '[data-testid="apply-filter-button"]',
   jsonInputTab: '[data-testid="json-input-tab"]',
   outputTab: '[data-testid="output-tab"]',
-  jsonOutput: '[data-testid="json-output"]',
-  errorMessage: '[data-testid="error-message"]',
-  copyButton: '[data-testid="copy-output-button"]',
+  jsonOutput: '[data-testid="json-output"], [data-testid="json-output-split"]',
+  errorMessage: '[data-testid="error-message"], [data-testid="error-message-split"]',
+  copyButton: '[data-testid="copy-output-button"], [data-testid="copy-output-button-split"]',
   helpButton: 'button:has(span:text("Show help"))',
   themeToggle: 'button:has(span:text("Toggle theme"))',
   helpDrawer: 'text="Help & Reference"'
