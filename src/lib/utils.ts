@@ -27,13 +27,8 @@ export async function encodeStateToUrl(jsonInput: string, jqFilter: string, acti
       const compressedData = await encodeState(dataWithFilter)
       params.set('data', compressedData)
     } catch (err) {
-      console.warn('Failed to compress data, falling back to uncompressed:', err)
-      // Fallback to old method if compression fails
-      const dataWithFilter = {
-        filter: jqFilter,
-        data: jsonInput.trim() ? JSON.parse(jsonInput) : null
-      }
-      params.set('data', encodeURIComponent(JSON.stringify(dataWithFilter)))
+      console.warn('Failed to compress data:', err)
+      throw err
     }
   }
   
@@ -56,11 +51,10 @@ export async function decodeStateFromUrl(): Promise<{ jsonInput: string; jqFilte
     let jqFilter = '.'
     let activeTab: 'input' | 'output' = 'input'
     
-    // Safely decode data parameter (now contains both filter and data)
+    // Safely decode data parameter (compressed format)
     const dataParam = params.get('data')
     if (dataParam) {
       try {
-        // First try to decode as compressed data
         const dataWithFilter = await decodeState(dataParam)
         
         // Extract filter and data from the combined object
@@ -73,30 +67,7 @@ export async function decodeStateFromUrl(): Promise<{ jsonInput: string; jqFilte
           }
         }
       } catch (err) {
-        // Fallback: try to parse as old-style URL-encoded JSON data
-        try {
-          const decodedParam = decodeURIComponent(dataParam)
-          const dataWithFilter = JSON.parse(decodedParam)
-          
-          // Extract filter and data from the combined object
-          if (dataWithFilter && typeof dataWithFilter === 'object') {
-            if (dataWithFilter.filter) {
-              jqFilter = dataWithFilter.filter
-            }
-            if (dataWithFilter.data) {
-              jsonInput = JSON.stringify(dataWithFilter.data, null, 2)
-            }
-          }
-        } catch {
-          // Final fallback: try to parse as direct JSON data
-          try {
-            const directData = decodeURIComponent(dataParam)
-            JSON.parse(directData) // Validate it's valid JSON
-            jsonInput = directData
-          } catch {
-            console.warn('Invalid data in URL parameter, ignoring:', err)
-          }
-        }
+        console.warn('Invalid compressed data in URL parameter, ignoring:', err)
       }
     }
     
@@ -131,17 +102,7 @@ export async function updateUrlState(jsonInput: string, jqFilter: string, active
       const compressedData = await encodeState(dataWithFilter)
       params.set('data', compressedData)
     } catch (err) {
-      console.warn('Failed to compress data, falling back to uncompressed:', err)
-      // Fallback to old method if compression fails
-      try {
-        const dataWithFilter = {
-          filter: jqFilter,
-          data: jsonInput.trim() ? JSON.parse(jsonInput) : null
-        }
-        params.set('data', encodeURIComponent(JSON.stringify(dataWithFilter)))
-      } catch (fallbackErr) {
-        console.warn('Failed to encode data with filter:', fallbackErr)
-      }
+      console.warn('Failed to compress data:', err)
     }
   }
   

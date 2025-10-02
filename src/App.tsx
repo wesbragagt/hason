@@ -22,6 +22,7 @@ function App() {
   const [jqFilter, setJqFilterLocal] = useState('.')
   const [appliedJqFilter, setAppliedJqFilter] = useState('.')
   const [activeTab, setActiveTabLocal] = useState<'input' | 'output'>('input')
+  const [urlStateLoaded, setUrlStateLoaded] = useState(false)
   
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
@@ -38,8 +39,10 @@ function App() {
       setJqFilterLocal(initialUrlState.jqFilter)
       setAppliedJqFilter(initialUrlState.jqFilter)
       setActiveTabLocal(initialUrlState.activeTab)
+      setUrlStateLoaded(true)
     }).catch((err) => {
       console.warn('Failed to decode URL state:', err)
+      setUrlStateLoaded(true)
     })
   }, [])
 
