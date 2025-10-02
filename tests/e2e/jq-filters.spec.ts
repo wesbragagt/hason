@@ -54,20 +54,6 @@ test.describe('jq Filters', () => {
     await hasonPage.expectOutputToContain('1');
   });
 
-  test.skip('should handle invalid filter gracefully', async () => {
-    // Skip this test - behavior varies based on jq-web loading state
-    const jsonData = testCases.simple.input;
-    
-    await hasonPage.inputJson(jsonData);
-    await hasonPage.setJqFilter('.nonexistent');
-    await hasonPage.applyJqFilter();
-    await hasonPage.switchToOutputTab();
-    
-    // Should show undefined for non-existent property
-    const output = await hasonPage.getJsonOutput();
-    expect(output).toBe('undefined');
-  });
-
   test('should update filter without losing input', async ({ page }) => {
     const jsonData = testCases.simple.input;
     

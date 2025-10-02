@@ -1,6 +1,8 @@
 // Custom jq WASM wrapper module
 // Provides jq-web compatible API using our custom compiled WASM
 
+import { getVersionedFilename } from './jq-version';
+
 interface JQModule {
   jq: {
     init(): number;
@@ -32,13 +34,14 @@ async function loadModule(): Promise<JQModule> {
   modulePromise = new Promise(async (resolve, reject) => {
     try {
       // Load the jq WASM module from the public directory
+      // Use versioned filename for better cache control
       const script = document.createElement('script');
-      script.src = '/jq.js';
+      script.src = `/${await getVersionedFilename('jq.js')}`;
       script.async = true;
       
       script.onload = async () => {
         try {
-          // The jq.js file defines a global jqModule function
+          // The versioned jq JS file defines a global jqModule function
           if (typeof (window as any).jqModule === 'function') {
             const wasmModule = await (window as any).jqModule();
             jqModule = wasmModule as JQModule;
@@ -52,7 +55,7 @@ async function loadModule(): Promise<JQModule> {
       };
       
       script.onerror = () => {
-        reject(new Error('Failed to load jq.js script'));
+        reject(new Error(`Failed to load versioned jq script`));
       };
       
       document.head.appendChild(script);

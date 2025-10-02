@@ -171,3 +171,6 @@ vite.config.ts.timestamp-*
 test-results/
 playwright-report/
 playwright/.cache/
+
+# jq binaries built by CI
+public/jq*

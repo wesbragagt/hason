@@ -66,18 +66,44 @@ We compile jq without the oniguruma regex library:
 - **Functionality**: Most JSON processing doesn't require advanced regex
 - **Future**: Can be re-enabled if regex features are needed
 
-### Dependency Management Strategy
+### Version Management Strategy
 
+The project uses a centralized version configuration system for easy updates:
+
+**Configuration File: `public/jq-version.json`**
+```json
+{
+  "version": "1.8.1",
+  "revision": "jq-1.8.1", 
+  "sha256": "sha256-R+tW0biyJrZqF8965ZbplJNDKr7vdrm7ndaccH7c4Ds="
+}
+```
+
+**Nix Integration:**
 ```nix
-# Pin exact jq version for reproducibility
+# Read jq version configuration from public folder
+jqVersionConfig = builtins.fromJSON (builtins.readFile ./public/jq-version.json);
+
 src = pkgs.fetchFromGitHub {
   owner = "jqlang";
   repo = "jq";
-  rev = "jq-1.7.1";  # Specific tag, not branch
-  sha256 = "sha256-oOlEbYxKiG/w6i2wb8trktqaB/5dXhX59kX1Qgft2zY=";
-  fetchSubmodules = true;  # Include git submodules
+  rev = jqVersionConfig.revision;      # Dynamic version from config
+  sha256 = jqVersionConfig.sha256;     # Dynamic hash from config
+  fetchSubmodules = true;              # Include git submodules
 };
 ```
+
+**Updating jq Version:**
+Use the provided script to update all components at once:
+```bash
+./update-jq-version.sh "1.9.0" "jq-1.9.0" "sha256-newhash"
+```
+
+This approach ensures:
+- ✅ Single source of truth for version information
+- ✅ Automatic updates across Nix build and TypeScript code
+- ✅ Version information accessible to the web application
+- ✅ Easy maintenance and upgrades
 
 ## Build Configuration
 
@@ -129,16 +155,42 @@ nix build .#jq-wasm
 ```
 
 ### Output Files
-- `public/jq.js` (76KB) - JavaScript loader and glue code
-- `public/jq.wasm` (447KB) - WebAssembly binary
+The build process generates both versioned and unversioned files:
+
+**Versioned Files (recommended for production):**
+- `public/jq_1-8-1.js` (77KB) - JavaScript loader and glue code
+- `public/jq_1-8-1.wasm` (453KB) - WebAssembly binary
+
+**Unversioned Files (backwards compatibility):**
+- `public/jq.js` (77KB) - JavaScript loader
+- `public/jq.wasm` (453KB) - WebAssembly binary
+
+**Configuration File:**
+- `public/jq-version.json` (119B) - Version configuration accessible to web app
+
+The versioned filenames automatically update when the jq version changes, providing better cache control and version tracking.
 
 ## Integration with React App
 
 The built WASM files integrate with the React application:
-1. **Loading**: jq.js provides the module loader
-2. **Initialization**: WASM binary is loaded asynchronously
-3. **Usage**: JSON processing through exported C functions
-4. **Memory**: Managed by Emscripten runtime
+
+### Version-Aware Loading
+The application automatically loads the correct versioned files:
+```typescript
+// Dynamically loads jq_1-8-1.js based on public/jq-version.json
+const script = document.createElement('script');
+script.src = `/${await getVersionedFilename('jq.js')}`;
+```
+
+### Loading Process
+1. **Version Config**: Fetch `/jq-version.json` to determine current version
+2. **Module Loading**: Load versioned JavaScript file (e.g., `jq_1-8-1.js`)
+3. **WASM Initialization**: WebAssembly binary is loaded asynchronously
+4. **API Exposure**: JSON processing through exported C functions
+5. **Memory Management**: Handled by Emscripten runtime
+
+### Fallback Strategy
+If version config loading fails, the application falls back to hardcoded version information to ensure robustness.
 
 ## Troubleshooting
 
@@ -165,6 +217,37 @@ nix log /nix/store/...-jq-wasm-1.7.1.drv
 nix build .#jq-wasm && ls -la result/
 ```
 
+## Version Update Process
+
+### Updating jq Version
+
+**Step 1: Use the Update Script**
+```bash
+./update-jq-version.sh "1.9.0" "jq-1.9.0" "sha256-newhash"
+```
+
+**Step 2: Get Correct SHA256 Hash**
+If you don't have the hash, use a placeholder first:
+```bash
+./update-jq-version.sh "1.9.0" "jq-1.9.0" "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+nix build .#jq-wasm  # This will fail and show the correct hash
+```
+
+**Step 3: Update with Correct Hash**
+Copy the correct hash from the error message and run the script again.
+
+**Step 4: Rebuild**
+```bash
+./build-jq-wasm.sh
+```
+
+### Manual Update Process
+If the script doesn't work, manually update:
+1. Edit `public/jq-version.json`
+2. Update fallback in `src/lib/jq-version.ts`
+3. Run `nix flake update`
+4. Rebuild with `./build-jq-wasm.sh`
+
 ## Future Improvements
 
 ### Potential Enhancements
@@ -172,6 +255,8 @@ nix build .#jq-wasm && ls -la result/
 2. **Optimize binary size** with additional Emscripten flags
 3. **Add debug builds** with source maps for development
 4. **Multi-platform support** for different architectures
+5. **Automated version checking** against GitHub releases
+6. **CI/CD integration** for automatic updates
 
 ### Alternative Approaches
 1. **WASI compilation** for server-side or CLI usage

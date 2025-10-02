@@ -16,10 +16,9 @@ nix build .#jq-wasm
 
 # Copy output to public directory
 echo "📁 Copying WASM files to public directory..."
-cp -v result/lib/jq.js public/
-cp -v result/lib/jq.wasm public/
+cp -v result/lib/jq*.js public/
+cp -v result/lib/jq*.wasm public/
 
 echo "✅ jq WASM module built successfully!"
 echo "📂 Files available in public/ directory:"
-echo "   - public/jq.js"
-echo "   - public/jq.wasm"
+ls -la public/jq*
