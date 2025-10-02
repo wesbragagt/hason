@@ -22,7 +22,7 @@ export default defineConfig({
     },
 
     workbox: {
-      globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+      globPatterns: ['**/*.{js,css,html,svg,png,ico,wasm}'],
       cleanupOutdatedCaches: true,
       clientsClaim: true,
     },
@@ -38,5 +38,8 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  optimizeDeps: {
+    exclude: ['jq-web'],
   },
 })

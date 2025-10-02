@@ -1,13 +1,26 @@
 import { useState, useEffect } from 'react'
-import jq from 'jq-web'
 import PWABadge from './PWABadge.tsx'
 import './App.css'
+
+let jq: any = null
 
 function App() {
   const [jsonInput, setJsonInput] = useState('')
   const [jqFilter, setJqFilter] = useState('.')
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
+  const [jqLoaded, setJqLoaded] = useState(false)
+
+  // Load jq-web dynamically
+  useEffect(() => {
+    import('jq-web').then((module) => {
+      jq = module.default
+      setJqLoaded(true)
+    }).catch((err) => {
+      console.error('Failed to load jq-web:', err)
+      setJqLoaded(false)
+    })
+  }, [])
 
   const processJson = async (input: string, filter: string) => {
     if (!input.trim()) {
@@ -27,7 +40,7 @@ function App() {
       }
 
       // Try to use jq-web if available
-      if (jq && jq.promised && jq.promised.json) {
+      if (jqLoaded && jq && jq.promised && jq.promised.json) {
         const result = await jq.promised.json(parsedInput, filter)
         setOutput(JSON.stringify(result, null, 2))
         setError('')
