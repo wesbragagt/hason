@@ -11,6 +11,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Split, TabletSmartphone, Copy, Check, CornerDownLeft } from 'lucide-react'
 import { cn, decodeStateFromUrl, updateUrlState } from '@/lib/utils'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 let jq: any = null
 
@@ -311,9 +313,20 @@ function App() {
                         {error}
                       </div>
                     ) : (
-                      <pre className="font-mono text-sm text-foreground whitespace-pre-wrap break-words" data-testid="json-output">
+                      <SyntaxHighlighter
+                        language="json"
+                        style={tomorrow}
+                        customStyle={{
+                          background: 'transparent',
+                          fontSize: '0.875rem',
+                          fontFamily: 'inherit',
+                          margin: 0,
+                          padding: 0
+                        }}
+                        data-testid="json-output"
+                      >
                         {output}
-                      </pre>
+                      </SyntaxHighlighter>
                     )}
                   </div>
                 )}
@@ -372,9 +385,20 @@ function App() {
                       {error}
                     </div>
                   ) : (
-                    <pre className="font-mono text-sm text-foreground whitespace-pre-wrap break-words" data-testid="json-output-split">
+                    <SyntaxHighlighter
+                      language="json"
+                      style={tomorrow}
+                      customStyle={{
+                        background: 'transparent',
+                        fontSize: '0.875rem',
+                        fontFamily: 'inherit',
+                        margin: 0,
+                        padding: 0
+                      }}
+                      data-testid="json-output-split"
+                    >
                       {output}
-                    </pre>
+                    </SyntaxHighlighter>
                   )}
                 </div>
               </CardContent>
