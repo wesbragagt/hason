@@ -106,8 +106,8 @@ test.describe('UI Interactions', () => {
     await page.waitForTimeout(200);
     
     // Verify split mode is active - look for text content
-    await expect(page.getByText('JSON Input', { exact: true })).toBeVisible();
-    await expect(page.getByText('Output', { exact: true })).toBeVisible();
+    await expect(page.locator('h3', { hasText: 'JSON Input' })).toBeVisible();
+    await expect(page.locator('h3', { hasText: 'Output' })).toBeVisible();
     
     // Also verify both textareas are visible (split mode shows both)
     const textareas = await page.locator('textarea').count();
