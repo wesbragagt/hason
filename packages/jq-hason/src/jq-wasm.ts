@@ -35,20 +35,22 @@ async function loadModule(): Promise<JQModule> {
     return modulePromise;
   }
   
-  modulePromise = new Promise(async (resolve, reject) => {
-    try {
-      if (isBrowser) {
-        // Browser environment - load from bundled assets
-        await loadBrowserModule(resolve, reject);
-      } else if (isNode) {
-        // Node.js environment - load from package
-        await loadNodeModule(resolve, reject);
-      } else {
-        reject(new Error('Unsupported environment: neither browser nor Node.js detected'));
+  modulePromise = new Promise((resolve, reject) => {
+    (async () => {
+      try {
+        if (isBrowser) {
+          // Browser environment - load from bundled assets
+          await loadBrowserModule(resolve, reject);
+        } else if (isNode) {
+          // Node.js environment - load from package
+          await loadNodeModule(resolve, reject);
+        } else {
+          reject(new Error('Unsupported environment: neither browser nor Node.js detected'));
+        }
+      } catch (error) {
+        reject(new Error(`Failed to load jq WASM module: ${String(error)}`));
       }
-    } catch (error) {
-      reject(new Error(`Failed to load jq WASM module: ${String(error)}`));
-    }
+    })();
   });
   
   return modulePromise;
@@ -100,9 +102,54 @@ async function loadBrowserModule(resolve: (module: JQModule) => void, reject: (e
 // Node.js loading logic  
 async function loadNodeModule(resolve: (module: JQModule) => void, reject: (error: Error) => void): Promise<void> {
   try {
-    // In Node.js, we would need to use a different approach
-    // For now, provide a fallback error
-    reject(new Error('Node.js support not yet implemented. Use in browser environment.'));
+    // Dynamic imports for Node.js
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    const { fileURLToPath } = await import('url');
+    
+    // Get the directory of this module
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    
+    // Read the jq.js file
+    const jqJsPath = path.join(__dirname, '..', 'wasm', 'jq.js');
+    const jqWasmPath = path.join(__dirname, '..', 'wasm', 'jq.wasm');
+    
+    // Check if files exist
+    try {
+      await fs.access(jqJsPath);
+      await fs.access(jqWasmPath);
+    } catch {
+      reject(new Error('jq WASM files not found. Make sure to build the project with: nix run .#build-jq-wasm'));
+      return;
+    }
+    
+    // Read and evaluate the jq.js file
+    const jqJsContent = await fs.readFile(jqJsPath, 'utf-8');
+    
+    // Create a module loader context
+    const Module: any = {
+      locateFile: (filename: string) => {
+        if (filename.endsWith('.wasm')) {
+          return jqWasmPath;
+        }
+        return filename;
+      }
+    };
+    
+    // Evaluate the jq.js content in a function scope
+    // This is a workaround for Node.js module loading
+    const moduleFactory = new Function('Module', 'exports', jqJsContent + '\nreturn jqModule;');
+    const jqModuleFactory = moduleFactory(Module, {});
+    
+    // Initialize the module
+    if (typeof jqModuleFactory === 'function') {
+      const wasmModule = await jqModuleFactory(Module);
+      jqModule = wasmModule as JQModule;
+      resolve(jqModule);
+    } else {
+      reject(new Error('Failed to load jqModule factory function'));
+    }
   } catch (error) {
     reject(new Error(`Node.js loading failed: ${String(error)}`));
   }

@@ -43,7 +43,7 @@ jobs:
 
       - name: Setup jq WASM files
         if: steps.cache-wasm.outputs.cache-hit != 'true'
-        run: nix run .#setup-jq
+        run: nix run .#copy-wasm-to-app
 
       - name: Upload WASM artifacts
         uses: actions/upload-artifact@v4
