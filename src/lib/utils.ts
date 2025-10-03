@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { encodeState, decodeState } from "../compression"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -8,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 // URL state management utilities
 const MAX_URL_LENGTH = 2000 // Conservative limit for URL length
 
-export function encodeStateToUrl(jsonInput: string, jqFilter: string, activeTab?: string): string {
+export async function encodeStateToUrl(jsonInput: string, jqFilter: string, activeTab?: string): Promise<string> {
   const params = new URLSearchParams()
   
   // Add tab parameter first
@@ -18,11 +19,17 @@ export function encodeStateToUrl(jsonInput: string, jqFilter: string, activeTab?
   
   // Embed filter and data into a single data object
   if (jsonInput.trim() || (jqFilter && jqFilter !== '.')) {
-    const dataWithFilter = {
-      filter: jqFilter,
-      data: jsonInput.trim() ? JSON.parse(jsonInput) : null
+    try {
+      const dataWithFilter = {
+        filter: jqFilter,
+        data: jsonInput.trim() ? JSON.parse(jsonInput) : null
+      }
+      const compressedData = await encodeState(dataWithFilter)
+      params.set('data', compressedData)
+    } catch (err) {
+      console.warn('Failed to compress data:', err)
+      throw err
     }
-    params.set('data', encodeURIComponent(JSON.stringify(dataWithFilter)))
   }
   
   const paramString = params.toString()
@@ -36,7 +43,7 @@ export function encodeStateToUrl(jsonInput: string, jqFilter: string, activeTab?
   return fullUrl
 }
 
-export function decodeStateFromUrl(): { jsonInput: string; jqFilter: string; activeTab: 'input' | 'output' } {
+export async function decodeStateFromUrl(): Promise<{ jsonInput: string; jqFilter: string; activeTab: 'input' | 'output' }> {
   try {
     const params = new URLSearchParams(window.location.search)
     
@@ -44,12 +51,11 @@ export function decodeStateFromUrl(): { jsonInput: string; jqFilter: string; act
     let jqFilter = '.'
     let activeTab: 'input' | 'output' = 'input'
     
-    // Safely decode data parameter (now contains both filter and data)
+    // Safely decode data parameter (compressed format)
     const dataParam = params.get('data')
     if (dataParam) {
       try {
-        const decodedParam = decodeURIComponent(dataParam)
-        const dataWithFilter = JSON.parse(decodedParam)
+        const dataWithFilter = await decodeState(dataParam)
         
         // Extract filter and data from the combined object
         if (dataWithFilter && typeof dataWithFilter === 'object') {
@@ -61,14 +67,7 @@ export function decodeStateFromUrl(): { jsonInput: string; jqFilter: string; act
           }
         }
       } catch (err) {
-        // Fallback: try to parse as old-style direct JSON data
-        try {
-          const directData = decodeURIComponent(dataParam)
-          JSON.parse(directData) // Validate it's valid JSON
-          jsonInput = directData
-        } catch (fallbackErr) {
-          console.warn('Invalid data in URL parameter, ignoring:', err)
-        }
+        console.warn('Invalid compressed data in URL parameter, ignoring:', err)
       }
     }
     
@@ -85,7 +84,7 @@ export function decodeStateFromUrl(): { jsonInput: string; jqFilter: string; act
   }
 }
 
-export function updateUrlState(jsonInput: string, jqFilter: string, activeTab?: string): void {
+export async function updateUrlState(jsonInput: string, jqFilter: string, activeTab?: string): Promise<void> {
   const params = new URLSearchParams()
   
   // Add tab parameter first
@@ -100,9 +99,10 @@ export function updateUrlState(jsonInput: string, jqFilter: string, activeTab?: 
         filter: jqFilter,
         data: jsonInput.trim() ? JSON.parse(jsonInput) : null
       }
-      params.set('data', encodeURIComponent(JSON.stringify(dataWithFilter)))
+      const compressedData = await encodeState(dataWithFilter)
+      params.set('data', compressedData)
     } catch (err) {
-      console.warn('Failed to encode data with filter:', err)
+      console.warn('Failed to compress data:', err)
     }
   }
   

@@ -24,7 +24,7 @@ vi.mock('../src/lib/jq-wasm.ts', () => {
           else if (input.includes('{') || input.includes('[') || input.includes('json')) {
             throw new Error('Invalid JSON format');
           }
-        } catch (e) {
+        } catch {
           throw new Error('Invalid JSON format');
         }
       }
@@ -141,15 +141,15 @@ vi.mock('../src/lib/jq-wasm.ts', () => {
   return {
     jq: mockJq,
     promised: {
-      json: mockJq.json,
-      raw: mockJq.raw
+      json: (input: any, filter: string) => mockJq.json(input, filter),
+      raw: (input: any, filter: string) => mockJq.raw(input, filter)
     },
     default: {
-      json: mockJq.json,
-      raw: mockJq.raw,
+      json: (input: any, filter: string) => mockJq.json(input, filter),
+      raw: (input: any, filter: string) => mockJq.raw(input, filter),
       promised: {
-        json: mockJq.json,
-        raw: mockJq.raw
+        json: (input: any, filter: string) => mockJq.json(input, filter),
+        raw: (input: any, filter: string) => mockJq.raw(input, filter)
       }
     }
   };

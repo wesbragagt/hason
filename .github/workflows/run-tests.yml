@@ -1,0 +1,158 @@
+name: "PR Tests"
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-wasm:
+    name: Build WASM Files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache WASM files
+        id: cache-wasm
+        uses: actions/cache@v4
+        with:
+          path: |
+            public/jq.js
+            public/jq.wasm
+          key: jq-wasm-${{ hashFiles('flake.nix', 'flake.lock', 'public/jq-version.json') }}
+
+      - name: Install Nix
+        if: steps.cache-wasm.outputs.cache-hit != 'true'
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Cache Nix store
+        if: steps.cache-wasm.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            /nix/store
+            ~/.cache/nix
+          key: ${{ runner.os }}-nix-${{ hashFiles('flake.nix', 'flake.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nix-
+
+      - name: Check the Nix flake
+        if: steps.cache-wasm.outputs.cache-hit != 'true'
+        run: nix flake check
+
+      - name: Setup jq WASM files
+        if: steps.cache-wasm.outputs.cache-hit != 'true'
+        run: nix run .#setup-jq
+
+      - name: Upload WASM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: jq-wasm-files
+          path: |
+            public/jq.js
+            public/jq.wasm
+
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    needs: build-wasm
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting with type checking
+        run: npm run check
+
+  tests:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    needs: build-wasm
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: jq-wasm-files
+          path: public/
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit and integration tests
+        run: npm test
+
+  # e2e-tests:
+  #   name: End-to-End Tests
+  #   runs-on: ubuntu-latest
+  #   needs: build-wasm
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+
+  #     - name: Download WASM artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: jq-wasm-files
+  #         path: public/
+
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version-file: '.nvmrc'
+  #         cache: 'npm'
+
+  #     - name: Install dependencies
+  #       run: npm ci
+
+  #     - name: Install Playwright browsers
+  #       run: npx playwright install --with-deps chromium
+
+  #     - name: Build application
+  #       run: npm run build
+
+  #     - name: Run E2E tests
+  #       run: npm run test:e2e
+
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: build-wasm
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: jq-wasm-files
+          path: public/
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npx vite build

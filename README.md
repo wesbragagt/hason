@@ -1,50 +1,47 @@
-# React + TypeScript + Vite
+# Hason - JSON Formatter PWA
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A fast, modern JSON formatter and processor that works offline. Transform, validate, and format JSON data with jq filters in your browser.
 
-Currently, two official plugins are available:
+![Hason JSON Formatter Screenshot](src/assets/hason-screenshot.png)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## What Problem Does This Solve?
 
-## Expanding the ESLint configuration
+- **Complex JSON Processing**: Parse and transform large JSON datasets using powerful jq syntax
+- **Offline Capability**: Works without internet connection as a Progressive Web App
+- **Developer Productivity**: Quickly format, validate, and extract data from JSON responses
+- **Cross-Platform**: Runs in any modern browser, installable as a native app
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+## Key Features
 
-- Configure the top-level `parserOptions` property like this:
+- 🔄 **jq Filtering**: Advanced JSON processing with jq syntax
+- 📱 **PWA Support**: Install as an app, works offline  
+- 🎨 **Multiple Themes**: Light/dark mode with theme switching
+- 📋 **Copy Support**: One-click clipboard copying
+- 🔗 **URL State**: Share JSON and filters via URL
+- ⚡ **Fast**: Built with Vite for instant HMR
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## Quick Start
+
+```bash
+# Clone and setup
+git clone <your-repo-url>
+cd hason
+npm ci
+
+# Start development server
+npm run dev
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+Visit `http://localhost:5173` to start formatting JSON.
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+## Architecture
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
+**Tech Stack**: React 19, TypeScript, Vite 6, PWA with Workbox  
+**Build System**: Nix for reproducible jq WebAssembly builds  
+**Testing**: Vitest (unit) + Playwright (e2e)
+
+For detailed setup instructions, build configuration, and Nix development environment, see [docs/nix.md](docs/nix.md).
+
+## License
+
+MIT

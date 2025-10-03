@@ -11,16 +11,19 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         
+        # Read jq version configuration
+        jqVersionConfig = builtins.fromJSON (builtins.readFile ./public/jq-version.json);
+        
         # Custom jq WASM build (manual approach works better than buildEmscriptenPackage)
         jq-wasm = pkgs.stdenv.mkDerivation {
           pname = "jq-wasm";
-          version = "1.7.1";
+          version = jqVersionConfig.version;
           
           src = pkgs.fetchFromGitHub {
             owner = "jqlang";
             repo = "jq";
-            rev = "jq-1.7.1";
-            sha256 = "sha256-oOlEbYxKiG/w6i2wb8trktqaB/5dXhX59kX1Qgft2zY=";
+            rev = jqVersionConfig.revision;
+            sha256 = jqVersionConfig.sha256;
             fetchSubmodules = true;
           };
           
@@ -80,8 +83,14 @@
           # Install phase
           installPhase = ''
             mkdir -p $out/lib
-            cp jq.js $out/lib/
-            cp jq.wasm $out/lib/
+            # Create versioned filenames (replace dots with dashes)
+            VERSION_SUFFIX=$(echo "${jqVersionConfig.version}" | sed 's/\./-/g')
+            cp jq.js $out/lib/jq_$VERSION_SUFFIX.js
+            cp jq.wasm $out/lib/jq_$VERSION_SUFFIX.wasm
+            
+            # Also create unversioned copies for backwards compatibility
+            cp jq.js $out/lib/jq.js
+            cp jq.wasm $out/lib/jq.wasm
           '';
         };
         
@@ -131,6 +140,21 @@
         packages = {
           jq-wasm = jq-wasm;
           default = jq-wasm;
+        };
+
+        # App commands
+        apps = {
+          setup-jq = {
+            type = "app";
+            program = "${pkgs.writeShellScript "setup-jq" ''
+              echo "Building jq WASM files..."
+              nix build .#jq-wasm -o jq-wasm-build
+              echo "Copying jq WASM files to public directory..."
+              cp jq-wasm-build/lib/jq.js public/
+              cp jq-wasm-build/lib/jq.wasm public/
+              echo "✅ jq WASM files ready in public/"
+            ''}";
+          };
         };
       });
 }

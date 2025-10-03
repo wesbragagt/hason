@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import PWABadge from './PWABadge.tsx'
 import { ThemeToggle } from './components/theme-toggle'
 import { ThemeSwitcher } from './components/theme-switcher'
@@ -11,18 +11,18 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Split, TabletSmartphone, Copy, Check, CornerDownLeft } from 'lucide-react'
 import { cn, decodeStateFromUrl, updateUrlState } from '@/lib/utils'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 let jq: any = null
 
 function App() {
-  // Derive initial state from URL
-  const initialUrlState = useMemo(() => decodeStateFromUrl(), [])
-  
   // Local state for immediate UI updates (no debouncing)
-  const [jsonInput, setJsonInputLocal] = useState(initialUrlState.jsonInput)
-  const [jqFilter, setJqFilterLocal] = useState(initialUrlState.jqFilter)
-  const [appliedJqFilter, setAppliedJqFilter] = useState(initialUrlState.jqFilter)
-  const [activeTab, setActiveTabLocal] = useState(initialUrlState.activeTab)
+  const [jsonInput, setJsonInputLocal] = useState('')
+  const [jqFilter, setJqFilterLocal] = useState('.')
+  const [appliedJqFilter, setAppliedJqFilter] = useState('.')
+  const [activeTab, setActiveTabLocal] = useState<'input' | 'output'>('input')
+  const [urlStateLoaded, setUrlStateLoaded] = useState(false)
   
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
@@ -31,6 +31,25 @@ function App() {
   const [showToast, setShowToast] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  // Load initial state from URL (non-blocking)
+  useEffect(() => {
+    // Set URL state as loaded immediately so app doesn't wait
+    setUrlStateLoaded(true)
+    
+    // Try to load URL state in background without blocking
+    decodeStateFromUrl().then((initialUrlState) => {
+      // Only apply URL state if there's actually data to load
+      if (initialUrlState.jsonInput || initialUrlState.jqFilter !== '.') {
+        setJsonInputLocal(initialUrlState.jsonInput)
+        setJqFilterLocal(initialUrlState.jqFilter)
+        setAppliedJqFilter(initialUrlState.jqFilter)
+        setActiveTabLocal(initialUrlState.activeTab)
+      }
+    }).catch((err) => {
+      console.warn('Failed to decode URL state:', err)
+    })
+  }, [])
 
   // Load jq-wasm dynamically
   useEffect(() => {
@@ -101,13 +120,15 @@ function App() {
 
   // Process JSON immediately when input changes or jq filter is applied
   useEffect(() => {
-    processJson(jsonInput, appliedJqFilter)
+    void processJson(jsonInput, appliedJqFilter)
   }, [jsonInput, appliedJqFilter, jqLoaded])
 
-  // Update URL when input changes or jq filter is applied
+  // Update URL when input changes or jq filter is applied (after URL state is loaded)
   useEffect(() => {
-    updateUrlState(jsonInput, appliedJqFilter, activeTab)
-  }, [jsonInput, appliedJqFilter, activeTab])
+    if (urlStateLoaded) {
+      void updateUrlState(jsonInput, appliedJqFilter, activeTab)
+    }
+  }, [jsonInput, appliedJqFilter, activeTab, urlStateLoaded])
 
   // Handlers for immediate local state updates
   const setJsonInput = (value: string) => {
@@ -120,8 +141,10 @@ function App() {
 
   const setActiveTab = (tab: 'input' | 'output') => {
     setActiveTabLocal(tab)
-    // Update URL immediately for tab changes
-    updateUrlState(jsonInput, jqFilter, tab)
+    // Update URL immediately for tab changes (if URL state is loaded)
+    if (urlStateLoaded) {
+      void updateUrlState(jsonInput, jqFilter, tab)
+    }
   }
 
   // Keyboard shortcut for help
@@ -213,6 +236,7 @@ function App() {
                 onKeyDown={handleJqFilterKeyDown}
                 className="flex-1 bg-background border-border/60 focus:border-primary focus:bg-background text-foreground placeholder:text-muted-foreground font-mono"
                 placeholder="Enter jq filter..."
+                data-testid="jq-filter-input"
               />
               <Button
                 onClick={() => setAppliedJqFilter(jqFilter)}
@@ -220,6 +244,7 @@ function App() {
                 size="sm"
                 className="bg-primary/10 border-border hover:bg-primary/20"
                 title="Apply jq filter"
+                data-testid="apply-filter-button"
               >
                 <CornerDownLeft className="h-4 w-4" />
               </Button>
@@ -257,6 +282,7 @@ function App() {
                       ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
                       : 'hover:bg-primary/20'
                   )}
+                  data-testid="json-input-tab"
                 >
                   JSON Input
                 </Button>
@@ -270,6 +296,7 @@ function App() {
                       ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
                       : 'hover:bg-primary/20'
                   )}
+                  data-testid="output-tab"
                 >
                   Output
                 </Button>
@@ -280,6 +307,7 @@ function App() {
                     size="sm"
                     className="ml-auto hover:bg-primary/20"
                     title="Copy output to clipboard"
+                    data-testid="copy-output-button"
                   >
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
@@ -296,18 +324,30 @@ function App() {
                     className="flex-1 border-0 bg-transparent resize-none font-mono text-sm p-4 focus-visible:ring-0 focus-visible:ring-offset-0"
                     placeholder="Paste your JSON here..."
                     spellCheck={false}
+                    data-testid="json-input-textarea"
                   />
                 )}
                 {activeTab === 'output' && (
                   <div className="flex-1 p-4 overflow-auto">
                     {error ? (
-                      <div className="text-destructive font-mono text-sm bg-destructive/10 p-3 rounded-lg border border-destructive/20">
+                      <div className="text-destructive font-mono text-sm bg-destructive/10 p-3 rounded-lg border border-destructive/20" data-testid="error-message">
                         {error}
                       </div>
                     ) : (
-                      <pre className="font-mono text-sm text-foreground whitespace-pre-wrap break-words">
+                      <SyntaxHighlighter
+                        language="json"
+                        style={tomorrow}
+                        customStyle={{
+                          background: 'transparent',
+                          fontSize: '0.875rem',
+                          fontFamily: 'inherit',
+                          margin: 0,
+                          padding: 0
+                        }}
+                        data-testid="json-output"
+                      >
                         {output}
-                      </pre>
+                      </SyntaxHighlighter>
                     )}
                   </div>
                 )}
@@ -331,6 +371,7 @@ function App() {
                   }}
                   placeholder="Paste your JSON here..."
                   spellCheck={false}
+                  data-testid="json-input-textarea-split"
                 />
               </CardContent>
             </Card>
@@ -346,6 +387,7 @@ function App() {
                       size="sm"
                       className="hover:bg-primary/20"
                       title="Copy output to clipboard"
+                      data-testid="copy-output-button-split"
                     >
                       {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     </Button>
@@ -360,13 +402,24 @@ function App() {
                   className="overflow-auto"
                 >
                   {error ? (
-                    <div className="text-destructive font-mono text-sm bg-destructive/10 p-3 rounded-lg border border-destructive/20">
+                    <div className="text-destructive font-mono text-sm bg-destructive/10 p-3 rounded-lg border border-destructive/20" data-testid="error-message-split">
                       {error}
                     </div>
                   ) : (
-                    <pre className="font-mono text-sm text-foreground whitespace-pre-wrap break-words">
+                    <SyntaxHighlighter
+                      language="json"
+                      style={tomorrow}
+                      customStyle={{
+                        background: 'transparent',
+                        fontSize: '0.875rem',
+                        fontFamily: 'inherit',
+                        margin: 0,
+                        padding: 0
+                      }}
+                      data-testid="json-output-split"
+                    >
                       {output}
-                    </pre>
+                    </SyntaxHighlighter>
                   )}
                 </div>
               </CardContent>

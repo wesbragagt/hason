@@ -15,24 +15,29 @@ export function ShareButton({ jsonInput, jqFilter, activeTab, className }: Share
   const [copied, setCopied] = useState(false)
 
   const handleShare = async () => {
-    const shareUrl = encodeStateToUrl(jsonInput, jqFilter, activeTab)
-    
-    // Warn user if URL is very long
-    if (shareUrl.length > 2000) {
-      const proceed = confirm(
-        `The URL is quite long (${shareUrl.length} characters) and may not work in all browsers or messaging apps. Do you want to continue?`
-      )
-      if (!proceed) return
-    }
-    
     try {
-      await navigator.clipboard.writeText(shareUrl)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      const shareUrl = await encodeStateToUrl(jsonInput, jqFilter, activeTab)
+      
+      // Warn user if URL is very long
+      if (shareUrl.length > 2000) {
+        const proceed = confirm(
+          `The URL is quite long (${shareUrl.length} characters) and may not work in all browsers or messaging apps. Do you want to continue?`
+        )
+        if (!proceed) return
+      }
+      
+      try {
+        await navigator.clipboard.writeText(shareUrl)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch (err) {
+        console.error('Failed to copy URL:', err)
+        // Fallback: show the URL in a prompt
+        prompt('Copy this URL to share:', shareUrl)
+      }
     } catch (err) {
-      console.error('Failed to copy URL:', err)
-      // Fallback: show the URL in a prompt
-      prompt('Copy this URL to share:', shareUrl)
+      console.error('Failed to encode state for sharing:', err)
+      alert('Failed to generate share URL. Please try again.')
     }
   }
 
