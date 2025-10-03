@@ -11,7 +11,7 @@ export class HasonPage {
   async inputJson(json: string) {
     await this.page.locator(commonSelectors.jsonInput).fill(json);
     // Wait for JSON processing to trigger
-    await this.page.waitForTimeout(300);
+    await this.page.waitForTimeout(100);
   }
 
   async setJqFilter(filter: string) {
@@ -20,12 +20,14 @@ export class HasonPage {
 
   async applyJqFilter() {
     await this.page.locator(commonSelectors.applyFilterButton).click();
-    // Wait for filter to be applied and processing to complete
-    await this.page.waitForTimeout(500);
+    // Wait a bit for async processing
+    await this.page.waitForTimeout(100);
   }
 
   async applyJqFilterWithEnter() {
     await this.page.locator(commonSelectors.jqFilterInput).press('Enter');
+    // Wait a bit for async processing
+    await this.page.waitForTimeout(100);
   }
 
   async switchToInputTab() {
@@ -33,9 +35,12 @@ export class HasonPage {
   }
 
   async switchToOutputTab() {
-    await this.page.locator(commonSelectors.outputTab).click();
-    // Wait for tab switch and output to render
-    await this.page.waitForTimeout(300);
+    const outputTab = this.page.locator(commonSelectors.outputTab);
+    if (await outputTab.isVisible()) {
+      await outputTab.click();
+      // Wait for tab to be active
+      await this.page.waitForTimeout(300);
+    }
   }
 
   async getJsonOutput() {
@@ -64,13 +69,48 @@ export class HasonPage {
   }
 
   async expectOutputToContain(text: string) {
-    // Wait for JSON processing to complete and output to be rendered
-    await this.page.waitForTimeout(1000); // Give time for async operations
-    await expect(this.page.locator(commonSelectors.jsonOutput)).toContainText(text, { timeout: 10000 });
+    // First ensure we're on the output tab or in split mode
+    const outputTab = this.page.locator(commonSelectors.outputTab);
+    const isTabsMode = await outputTab.isVisible();
+    
+    if (isTabsMode) {
+      // In tabs mode, make sure output tab is active
+      await this.switchToOutputTab();
+    }
+    
+    // Wait for processing to complete
+    await this.page.waitForTimeout(1000);
+    
+    // Try to find the text in the output
+    const outputLocator = this.page.locator(commonSelectors.jsonOutput);
+    
+    try {
+      await expect(outputLocator).toContainText(text, { timeout: 5000 });
+    } catch (error) {
+      // If output is not found, check if there's an error instead
+      const errorLocator = this.page.locator(commonSelectors.errorMessage);
+      const errorVisible = await errorLocator.isVisible();
+      
+      if (errorVisible) {
+        const errorText = await errorLocator.textContent();
+        throw new Error(`Expected output '${text}' but got error: ${errorText}`);
+      } else {
+        // Re-throw the original error if no error message found
+        throw error;
+      }
+    }
   }
 
   async expectErrorToBeVisible() {
-    await expect(this.page.locator(commonSelectors.errorMessage)).toBeVisible();
+    // First ensure we're on the output tab or in split mode
+    const outputTab = this.page.locator(commonSelectors.outputTab);
+    const isTabsMode = await outputTab.isVisible();
+    
+    if (isTabsMode) {
+      await this.switchToOutputTab();
+    }
+    
+    await expect(this.page.locator(commonSelectors.errorMessage)).toBeVisible({ timeout: 5000 });
   }
 
   async expectErrorToContain(text: string) {
@@ -88,7 +128,7 @@ export class HasonPage {
   async expectTabToBeActive(tab: 'input' | 'output') {
     const selector = tab === 'input' ? commonSelectors.jsonInputTab : commonSelectors.outputTab;
     // Check if the tab has the active variant styling
-    await expect(this.page.locator(selector)).toHaveClass(/bg-primary/);
+    await expect(this.page.locator(selector)).toHaveClass(/bg-primary/, { timeout: 5000 });
   }
 
   async expectCopyButtonToShowCopied() {

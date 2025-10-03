@@ -81,7 +81,7 @@ function App() {
 
       // Try to use jq-hason if available
       if (jqLoaded && jq && jq.jq) {
-        const result = await jq.jq(parsedInput, filter)
+        const result = await jq.jq.json(parsedInput, filter)
         setOutput(JSON.stringify(result, null, 2))
         setError('')
       } else {
@@ -258,6 +258,7 @@ function App() {
                 variant="outline"
                 size="sm"
                 className="bg-primary/10 border-border hover:bg-primary/20"
+                data-testid="view-mode-toggle"
               >
                 {viewMode === 'tabs' ? <Split className="h-4 w-4" /> : <TabletSmartphone className="h-4 w-4" />}
               </Button>

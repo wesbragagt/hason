@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { jq } from '../../src/lib/jq-wasm.ts'
+import { jq } from 'jq-hason'
 import { fixtures, testCases } from '../fixtures/test-data'
 
 describe('Basic jq Syntax Integration', () => {

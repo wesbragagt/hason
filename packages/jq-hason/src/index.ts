@@ -1,11 +1,27 @@
 // jq-hason: WebAssembly build of jq for JavaScript environments
 // Main API exports
 
-export { promised as jq } from './jq-wasm';
+export { promised } from './jq-wasm';
 export { getVersionedFilename, getJQVersion } from './jq-version';
 
-// Re-export for compatibility
-export { promised } from './jq-wasm';
+// API compatible with test expectations
+import { promised } from './jq-wasm';
+
+export const jq = {
+  // Return parsed JSON result
+  json: async (input: any, filter: string): Promise<any> => {
+    return await promised(input, filter);
+  },
+  
+  // Return string representation
+  raw: async (input: any, filter: string): Promise<string> => {
+    const result = await promised(input, filter);
+    return typeof result === 'string' ? result : JSON.stringify(result);
+  }
+};
+
+// Also export the simple function for direct use
+export { promised as jqSimple } from './jq-wasm';
 
 // Types
 export interface JQResult {

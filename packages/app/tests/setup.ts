@@ -5,8 +5,8 @@ import { vi } from 'vitest'
 global.document = global.document || {}
 global.window = global.window || {}
 
-// Mock the jq-wasm module for integration tests
-vi.mock('../src/lib/jq-wasm.ts', () => {
+// Mock the jq-hason package for integration tests
+vi.mock('jq-hason', () => {
   const mockJq = {
     async json(input: any, filter: string): Promise<any> {
       // Implement basic jq functionality for testing
@@ -140,18 +140,12 @@ vi.mock('../src/lib/jq-wasm.ts', () => {
 
   return {
     jq: mockJq,
-    promised: {
-      json: (input: any, filter: string) => mockJq.json(input, filter),
-      raw: (input: any, filter: string) => mockJq.raw(input, filter)
-    },
-    default: {
-      json: (input: any, filter: string) => mockJq.json(input, filter),
-      raw: (input: any, filter: string) => mockJq.raw(input, filter),
-      promised: {
-        json: (input: any, filter: string) => mockJq.json(input, filter),
-        raw: (input: any, filter: string) => mockJq.raw(input, filter)
-      }
-    }
+    promised: (input: any, filter: string) => mockJq.json(input, filter),
+    jqSimple: (input: any, filter: string) => mockJq.json(input, filter),
+    getJQVersion: async () => '1.8.1',
+    getVersion: async () => '1.8.1',
+    getVersionedFilename: async (filename: string) => filename.replace('.', '_1-8-1.'),
+    JQ_VERSION: '1.8.1'
   };
 });
 

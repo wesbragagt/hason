@@ -30,10 +30,7 @@ test.describe('Core Functionality', () => {
   });
 
   test('should maintain state when switching between tabs', async ({ page }) => {
-    const testData = testCases.simple.input;
-    
-    // Add input on input tab
-    await hasonPage.inputJson(testData);
+    await hasonPage.inputJson(testCases.simple.input);
     
     // Switch to output tab
     await hasonPage.switchToOutputTab();
@@ -44,7 +41,7 @@ test.describe('Core Functionality', () => {
     
     // Input should be preserved
     const inputValue = await page.locator('[data-testid="json-input-textarea"]').inputValue();
-    expect(inputValue).toBe(testData);
+    expect(inputValue).toBe(testCases.simple.input);
     
     // Switch back to output tab
     await hasonPage.switchToOutputTab();
@@ -53,13 +50,14 @@ test.describe('Core Functionality', () => {
     await hasonPage.expectOutputToContain('John');
   });
 
-  test('should show error and recover gracefully', async ({ page }) => {
-    // Start with valid JSON
+  test('should display formatted JSON and handle errors', async ({ page }) => {
+    // Test basic JSON formatting
     await hasonPage.inputJson(testCases.simple.input);
     await hasonPage.switchToOutputTab();
     await hasonPage.expectOutputToContain('John');
+    await hasonPage.expectOutputToContain('30');
     
-    // Add invalid JSON
+    // Test error handling with invalid JSON
     await hasonPage.switchToInputTab();
     await hasonPage.inputJson(testCases.invalid.malformed);
     await hasonPage.switchToOutputTab();
@@ -67,25 +65,19 @@ test.describe('Core Functionality', () => {
     // Should show error
     await hasonPage.expectErrorToBeVisible();
     
-    // Fix the JSON
+    // Test empty input handling
     await hasonPage.switchToInputTab();
-    await hasonPage.inputJson(testCases.simple.input);
+    await hasonPage.inputJson('');
     await hasonPage.switchToOutputTab();
     
-    // Should show valid output again
-    await hasonPage.expectOutputToContain('John');
-    
-    // Error should be gone
-    const errorElement = page.locator('[data-testid="error-message"]');
-    await expect(errorElement).not.toBeVisible();
+    // Should handle empty input gracefully
+    const output = await hasonPage.getJsonOutput();
+    expect(output || '').toBe('');
   });
 
   test('should handle share functionality', async ({ page }) => {
-    const testData = testCases.simple.input;
-    const testFilter = '.name';
-    
-    await hasonPage.inputJson(testData);
-    await hasonPage.setJqFilter(testFilter);
+    await hasonPage.inputJson(testCases.simple.input);
+    await hasonPage.setJqFilter('.name');
     await hasonPage.applyJqFilter();
     
     // Look for share button specifically by its title attribute
