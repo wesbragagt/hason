@@ -39,3 +39,9 @@ export async function getVersionedFilename(basename: string): Promise<string> {
   const [name, ext] = basename.split('.');
   return `${name}_${versionSuffix}.${ext}`;
 }
+
+// Get the current jq version string
+export async function getJQVersion(): Promise<string> {
+  const config = await getJQVersionConfig();
+  return config.version;
+}

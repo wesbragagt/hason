@@ -41,12 +41,12 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ['jq-web'],
+    exclude: ['jq-hason'],
   },
   assetsInclude: ['**/*.wasm'],
   server: {
     fs: {
-      allow: ['..']
+      allow: ['../..']
     }
   },
   test: {
@@ -57,7 +57,7 @@ export default defineConfig({
     exclude: ['tests/e2e/**', 'node_modules/**'],
     server: {
       deps: {
-        inline: ['jq-web']
+        inline: ['jq-hason']
       }
     }
   }

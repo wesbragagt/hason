@@ -14,11 +14,14 @@ fi
 echo "📦 Building jq-wasm package with Nix..."
 nix build .#jq-wasm
 
-# Copy output to public directory
-echo "📁 Copying WASM files to public directory..."
-cp -v result/lib/jq*.js public/
-cp -v result/lib/jq*.wasm public/
+# Copy output to app public directory and jq-hason package
+echo "📁 Copying WASM files to directories..."
+cp -v result/lib/jq*.js packages/app/public/
+cp -v result/lib/jq*.wasm packages/app/public/
+cp -v result/lib/jq*.js packages/jq-hason/src/wasm/
+cp -v result/lib/jq*.wasm packages/jq-hason/src/wasm/
 
 echo "✅ jq WASM module built successfully!"
-echo "📂 Files available in public/ directory:"
-ls -la public/jq*
+echo "📂 Files available in packages/app/public/ and packages/jq-hason/src/wasm/ directories:"
+ls -la packages/app/public/jq*
+ls -la packages/jq-hason/src/wasm/jq*

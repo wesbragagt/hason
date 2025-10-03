@@ -12,7 +12,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
         
         # Read jq version configuration
-        jqVersionConfig = builtins.fromJSON (builtins.readFile ./public/jq-version.json);
+        jqVersionConfig = builtins.fromJSON (builtins.readFile ./packages/app/public/jq-version.json);
         
         # Custom jq WASM build (manual approach works better than buildEmscriptenPackage)
         jq-wasm = pkgs.stdenv.mkDerivation {
@@ -74,8 +74,8 @@
               -s TOTAL_MEMORY=16777216 \
               -s NO_EXIT_RUNTIME=1 \
               -s INVOKE_RUN=0 \
-              --pre-js ${./src/wasm/pre.js} \
-              --post-js ${./src/wasm/post.js} \
+              --pre-js ${./packages/jq-hason/src/wasm/pre.js} \
+              --post-js ${./packages/jq-hason/src/wasm/post.js} \
               -o jq.js \
               .libs/libjq.a src/main.o
           '';
@@ -139,6 +139,7 @@
         # Package outputs
         packages = {
           jq-wasm = jq-wasm;
+          jq = pkgs.jq;  # Add jq package
           default = jq-wasm;
         };
 
@@ -150,9 +151,9 @@
               echo "Building jq WASM files..."
               nix build .#jq-wasm -o jq-wasm-build
               echo "Copying jq WASM files to public directory..."
-              cp jq-wasm-build/lib/jq.js public/
-              cp jq-wasm-build/lib/jq.wasm public/
-              echo "✅ jq WASM files ready in public/"
+              cp jq-wasm-build/lib/jq*.js packages/app/public/
+              cp jq-wasm-build/lib/jq*.wasm packages/app/public/
+              echo "✅ jq WASM files ready in packages/app/public/"
             ''}";
           };
         };
