@@ -1,6 +1,6 @@
 # Nix Setup for jq WebAssembly Compilation
 
-This document explains the Nix-based build system for compiling jq to WebAssembly (WASM) for use in the hason PWA.
+This document explains the Nix-based build system for compiling jq to WebAssembly (WASM) for use in the hason monorepo, including the React PWA and npm package distribution.
 
 ## Overview
 
@@ -25,15 +25,20 @@ We use Nix to create a reproducible build environment for compiling jq to WebAss
 
 ## Architecture
 
-### File Structure
+### Monorepo Structure
 ```
-├── flake.nix              # Main Nix configuration
-├── flake.lock             # Dependency lock file
-├── build-jq-wasm.sh       # Build script
-├── .envrc                 # direnv configuration
-└── src/wasm/
-    ├── pre.js             # Emscripten pre-run JavaScript
-    └── post.js            # Emscripten post-run JavaScript
+├── flake.nix                        # Main Nix configuration with apps
+├── flake.lock                       # Dependency lock file
+├── .envrc                           # direnv configuration
+├── packages/
+│   ├── app/                         # React PWA application
+│   │   └── public/                  # WASM files deployed here
+│   ├── jq-hason/                    # npm package for jq WASM
+│   │   └── src/wasm/                # WASM source files
+│   │       ├── pre.js               # Emscripten pre-run JavaScript
+│   │       └── post.js              # Emscripten post-run JavaScript
+│   └── scripts/                     # Legacy scripts (replaced by Nix apps)
+└── pnpm-workspace.yaml              # pnpm workspace configuration
 ```
 
 ### Build Process
@@ -70,7 +75,7 @@ We compile jq without the oniguruma regex library:
 
 The project uses a centralized version configuration system for easy updates:
 
-**Configuration File: `public/jq-version.json`**
+**Configuration File: `packages/app/public/jq-version.json`**
 ```json
 {
   "version": "1.8.1",
@@ -81,8 +86,8 @@ The project uses a centralized version configuration system for easy updates:
 
 **Nix Integration:**
 ```nix
-# Read jq version configuration from public folder
-jqVersionConfig = builtins.fromJSON (builtins.readFile ./public/jq-version.json);
+# Read jq version configuration from app public folder
+jqVersionConfig = builtins.fromJSON (builtins.readFile ./packages/app/public/jq-version.json);
 
 src = pkgs.fetchFromGitHub {
   owner = "jqlang";
@@ -94,15 +99,16 @@ src = pkgs.fetchFromGitHub {
 ```
 
 **Updating jq Version:**
-Use the provided script to update all components at once:
+Use the Nix app to update all components at once:
 ```bash
-./update-jq-version.sh "1.9.0" "jq-1.9.0" "sha256-newhash"
+nix run .#update-jq-version -- "1.9.0" "jq-1.9.0" "sha256-newhash"
 ```
 
 This approach ensures:
 - ✅ Single source of truth for version information
-- ✅ Automatic updates across Nix build and TypeScript code
-- ✅ Version information accessible to the web application
+- ✅ Automatic updates across Nix build, TypeScript code, and npm package
+- ✅ Version information accessible to both web application and npm consumers
+- ✅ Synchronized versioning between app and jq-hason package
 - ✅ Easy maintenance and upgrades
 
 ## Build Configuration
@@ -119,8 +125,8 @@ emcc -O3 \
   -s TOTAL_MEMORY=16777216 \                     # 16MB initial memory
   -s NO_EXIT_RUNTIME=1 \                         # Keep runtime alive
   -s INVOKE_RUN=0 \                              # Don't auto-run main()
-  --pre-js ${./src/wasm/pre.js} \                # Custom initialization
-  --post-js ${./src/wasm/post.js} \              # Custom cleanup
+  --pre-js ${./packages/jq-hason/src/wasm/pre.js} \  # Custom initialization
+  --post-js ${./packages/jq-hason/src/wasm/post.js} \ # Custom cleanup
   -o jq.js \                                     # Output files
   .libs/libjq.a src/main.o                       # Input files
 ```
@@ -143,54 +149,85 @@ direnv allow
 
 # Or manual Nix shell
 nix develop
+
+# Setup jq binary for development
+nix run .#setup-jq
 ```
 
-### Building
+### Building WASM
 ```bash
-# Build jq WASM
-./build-jq-wasm.sh
+# Build jq WASM and copy to both app and package
+nix run .#build-jq-wasm
 
-# Or directly with Nix
+# Or build package only
 nix build .#jq-wasm
+
+# Copy WASM files to app (for CI)
+nix run .#copy-wasm-to-app
 ```
+
+### Available Nix Apps
+- `nix run .#setup-jq` - Setup jq binary for development
+- `nix run .#build-jq-wasm` - Build and copy WASM files to both app and package
+- `nix run .#copy-wasm-to-app` - Copy WASM files to app public directory  
+- `nix run .#update-jq-version -- <version> <revision> <sha256>` - Update jq version across all files
 
 ### Output Files
-The build process generates both versioned and unversioned files:
+The build process generates files in multiple locations:
 
-**Versioned Files (recommended for production):**
-- `public/jq_1-8-1.js` (77KB) - JavaScript loader and glue code
-- `public/jq_1-8-1.wasm` (453KB) - WebAssembly binary
+**App Public Directory (`packages/app/public/`):**
+- `jq_1-8-1.js` (77KB) - Versioned JavaScript loader and glue code
+- `jq_1-8-1.wasm` (453KB) - Versioned WebAssembly binary
+- `jq.js` (77KB) - Unversioned JavaScript loader (backwards compatibility)
+- `jq.wasm` (453KB) - Unversioned WebAssembly binary (backwards compatibility)
+- `jq-version.json` (119B) - Version configuration accessible to web app
 
-**Unversioned Files (backwards compatibility):**
-- `public/jq.js` (77KB) - JavaScript loader
-- `public/jq.wasm` (453KB) - WebAssembly binary
+**jq-hason Package (`packages/jq-hason/src/wasm/`):**
+- `jq_1-8-1.js` - Source files for npm package bundling
+- `jq_1-8-1.wasm` - WASM binary for package distribution
+- `jq.js` - Unversioned files for package compatibility
+- `jq.wasm` - Unversioned WASM binary
 
-**Configuration File:**
-- `public/jq-version.json` (119B) - Version configuration accessible to web app
+The versioned filenames automatically update when the jq version changes, providing better cache control and version tracking across both the web app and npm package.
 
-The versioned filenames automatically update when the jq version changes, providing better cache control and version tracking.
+## Integration with Monorepo
 
-## Integration with React App
+### React App Integration
+The built WASM files integrate with the React application in `packages/app/`:
 
-The built WASM files integrate with the React application:
-
-### Version-Aware Loading
+#### Version-Aware Loading
 The application automatically loads the correct versioned files:
 ```typescript
-// Dynamically loads jq_1-8-1.js based on public/jq-version.json
+// Dynamically loads jq_1-8-1.js based on jq-version.json
 const script = document.createElement('script');
 script.src = `/${await getVersionedFilename('jq.js')}`;
 ```
 
-### Loading Process
+#### Loading Process
 1. **Version Config**: Fetch `/jq-version.json` to determine current version
 2. **Module Loading**: Load versioned JavaScript file (e.g., `jq_1-8-1.js`)
 3. **WASM Initialization**: WebAssembly binary is loaded asynchronously
-4. **API Exposure**: JSON processing through exported C functions
+4. **API Exposure**: JSON processing through jq-hason package
 5. **Memory Management**: Handled by Emscripten runtime
 
-### Fallback Strategy
-If version config loading fails, the application falls back to hardcoded version information to ensure robustness.
+### npm Package Integration (`jq-hason`)
+The jq-hason package provides a clean API for npm consumers:
+
+```typescript
+import { jq, getJQVersion } from 'jq-hason';
+
+// Process JSON with jq filter
+const result = await jq({ name: "John" }, '.name');
+
+// Get current jq version
+console.log(getJQVersion()); // "1.8.1"
+```
+
+#### Build Process
+- WASM files are bundled with `tsdown` for optimal distribution
+- Dual ESM/CommonJS exports for broad compatibility
+- TypeScript declarations generated automatically
+- Version synchronization with jq version
 
 ## Troubleshooting
 
@@ -211,42 +248,46 @@ If version config loading fails, the application falls back to hardcoded version
 ### Debugging
 ```bash
 # View detailed build logs
-nix log /nix/store/...-jq-wasm-1.7.1.drv
+nix log /nix/store/...-jq-wasm-1.8.1.drv
 
 # Check output structure
 nix build .#jq-wasm && ls -la result/
+
+# Test individual Nix apps
+nix run .#setup-jq
+nix run .#copy-wasm-to-app
 ```
 
 ## Version Update Process
 
 ### Updating jq Version
 
-**Step 1: Use the Update Script**
+**Step 1: Use the Nix App**
 ```bash
-./update-jq-version.sh "1.9.0" "jq-1.9.0" "sha256-newhash"
+nix run .#update-jq-version -- "1.9.0" "jq-1.9.0" "sha256-newhash"
 ```
 
 **Step 2: Get Correct SHA256 Hash**
 If you don't have the hash, use a placeholder first:
 ```bash
-./update-jq-version.sh "1.9.0" "jq-1.9.0" "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+nix run .#update-jq-version -- "1.9.0" "jq-1.9.0" "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 nix build .#jq-wasm  # This will fail and show the correct hash
 ```
 
 **Step 3: Update with Correct Hash**
-Copy the correct hash from the error message and run the script again.
+Copy the correct hash from the error message and run the update command again.
 
 **Step 4: Rebuild**
 ```bash
-./build-jq-wasm.sh
+nix run .#build-jq-wasm
 ```
 
-### Manual Update Process
-If the script doesn't work, manually update:
-1. Edit `public/jq-version.json`
-2. Update fallback in `src/lib/jq-version.ts`
-3. Run `nix flake update`
-4. Rebuild with `./build-jq-wasm.sh`
+### What Gets Updated
+The `update-jq-version` Nix app automatically updates:
+1. `packages/app/public/jq-version.json` - Version configuration
+2. `packages/jq-hason/package.json` - npm package version
+3. `packages/jq-hason/src/jq-version.ts` - TypeScript fallback version
+4. `packages/jq-hason/src/index.ts` - JQ_VERSION constant
 
 ## Future Improvements
 

@@ -30,15 +30,8 @@ jobs:
       - name: Enable Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@main
       
-      - name: Build jq binary with Nix
-        run: nix build .#jq -o jq-build
-      
-      - name: Prepare jq files for application
-        run: |
-          mkdir -p public
-          cp jq-build/bin/jq public/jq
-          chmod +x public/jq
-          echo "Production jq binary: $(public/jq --version)"
+      - name: Setup jq and WASM files
+        run: nix run .#copy-wasm-to-app
       
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/setup-install

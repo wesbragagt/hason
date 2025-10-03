@@ -28,5 +28,9 @@ export interface JQModule {
   ALLOC_NORMAL: number;
 }
 
-// Version information
+// Version information - re-export from jq-version to maintain single source of truth
+export { getJQVersion as getVersion } from './jq-version';
+
+// For backwards compatibility, provide synchronous version constant
+// This matches the fallback version in jq-version.ts
 export const JQ_VERSION = '1.8.1';
