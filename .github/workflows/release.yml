@@ -25,6 +25,15 @@ jobs:
         with:
           fetch-depth: 0
       
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+      
+      - name: Enable Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+      
+      - name: Setup jq and WASM files
+        run: nix run .#copy-wasm-to-app
+      
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/setup-install
       
