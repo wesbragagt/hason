@@ -96,7 +96,7 @@ test.describe('UI Interactions', () => {
   });
 
   test('should toggle view mode between tabs and split', async ({ page }) => {
-    // Find the split/tabs toggle button - it has an SVG icon
+    // Find the split/tabs toggle button
     const viewModeButton = page.locator('[data-testid="view-mode-toggle"]');
     
     // Wait for the button to be visible first
