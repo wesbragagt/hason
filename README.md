@@ -52,6 +52,22 @@ pnpm run dev
 
 Visit `http://localhost:5173` to start formatting JSON.
 
+### 🐳 Docker Deployment
+
+Quick start with Docker:
+
+```bash
+# Build and run locally
+docker-compose up
+
+# Or use pre-built image
+docker run -p 3000:80 ghcr.io/wesbragagt/hason:latest
+```
+
+Visit `http://localhost:3000` to access the application.
+
+See [Docker Documentation](docs/docker.md) for advanced deployment options, Kubernetes configs, and troubleshooting.
+
 ### Using jq-hason as an npm Package
 
 The `jq-hason` package can be used independently in other projects:
