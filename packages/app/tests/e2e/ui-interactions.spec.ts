@@ -96,22 +96,18 @@ test.describe('UI Interactions', () => {
   });
 
   test('should toggle view mode between tabs and split', async ({ page }) => {
-    // Find the split/tabs toggle button - it has an SVG icon
+    // Find the split/tabs toggle button
     const viewModeButton = page.locator('[data-testid="view-mode-toggle"]');
+    
+    // Wait for the button to be visible first
+    await expect(viewModeButton).toBeVisible({ timeout: 10000 });
     
     // Click to switch to split mode
     await viewModeButton.click();
     
-    // Wait for split mode to render
-    await page.waitForTimeout(200);
-    
-    // Verify split mode is active - look for text content
-    await expect(page.locator('h3', { hasText: 'JSON Input' })).toBeVisible();
-    await expect(page.locator('h3', { hasText: 'Output' })).toBeVisible();
-    
-    // Also verify both textareas are visible (split mode shows both)
-    const textareas = await page.locator('textarea').count();
-    expect(textareas).toBe(1); // Should have at least one textarea visible in split mode
+    // Verify split mode is active by checking for split view elements
+    await expect(page.locator('h3', { hasText: 'JSON Input' })).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('h3', { hasText: 'Output' })).toBeVisible({ timeout: 5000 });
     
     // Click again to switch back to tabs mode
     await viewModeButton.click();

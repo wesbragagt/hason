@@ -258,6 +258,7 @@ function App() {
                 variant="outline"
                 size="sm"
                 className="bg-primary/10 border-border hover:bg-primary/20"
+                data-testid="view-mode-toggle"
               >
                 {viewMode === 'tabs' ? <Split className="h-4 w-4" /> : <TabletSmartphone className="h-4 w-4" />}
               </Button>
