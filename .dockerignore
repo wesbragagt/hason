@@ -1,0 +1,55 @@
+# Development files
+node_modules
+.git
+.github
+.vscode
+.idea
+
+# Build outputs (will be generated during build)
+dist
+packages/app/dist
+packages/jq-hason/dist
+result
+
+# Logs and temporary files
+*.log
+.env.local
+.env.*.local
+*.tmp
+*.temp
+
+# Testing
+test-results
+playwright-report
+coverage
+.nyc_output
+
+# Cache directories
+.cache
+.parcel-cache
+.next
+.nuxt
+.vite
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Package manager files
+.pnpm-debug.log*
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Nix
+.direnv
+.emscripten_cache
+
+# Editor
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
