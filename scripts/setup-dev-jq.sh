@@ -10,22 +10,22 @@ if command -v nix &> /dev/null; then
     # Build jq with Nix
     nix build .#jq -o jq-build
     
-    # Prepare jq files
-    mkdir -p public
-    cp jq-build/bin/jq public/jq
-    chmod +x public/jq
+    # Prepare jq files for app
+    mkdir -p packages/app/public
+    cp jq-build/bin/jq packages/app/public/jq
+    chmod +x packages/app/public/jq
     
-    echo "✓ jq binary built with Nix: $(public/jq --version)"
+    echo "✓ jq binary built with Nix: $(packages/app/public/jq --version)"
     
 elif command -v jq &> /dev/null; then
     echo "Using system jq binary..."
     
     # Use system jq
-    mkdir -p public
-    cp "$(which jq)" public/jq
-    chmod +x public/jq
+    mkdir -p packages/app/public
+    cp "$(which jq)" packages/app/public/jq
+    chmod +x packages/app/public/jq
     
-    echo "✓ Using system jq: $(public/jq --version)"
+    echo "✓ Using system jq: $(packages/app/public/jq --version)"
     
 else
     echo "❌ Neither Nix nor system jq found!"
@@ -36,4 +36,4 @@ else
 fi
 
 echo "🎉 jq setup complete! You can now run:"
-echo "  npm run dev"
+echo "  pnpm run dev"

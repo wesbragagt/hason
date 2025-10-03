@@ -51,13 +51,13 @@ function App() {
     })
   }, [])
 
-  // Load jq-wasm dynamically
+  // Load jq-hason dynamically
   useEffect(() => {
-    import('./lib/jq-wasm').then((module) => {
-      jq = module.default
+    import('jq-hason').then((module) => {
+      jq = module
       setJqLoaded(true)
     }).catch((err) => {
-      console.error('Failed to load jq-wasm:', err)
+      console.error('Failed to load jq-hason:', err)
       setJqLoaded(false)
     })
   }, [])
@@ -79,9 +79,9 @@ function App() {
         return
       }
 
-      // Try to use jq-web if available
-      if (jqLoaded && jq && jq.promised && jq.promised.json) {
-        const result = await jq.promised.json(parsedInput, filter)
+      // Try to use jq-hason if available
+      if (jqLoaded && jq && jq.jq) {
+        const result = await jq.jq(parsedInput, filter)
         setOutput(JSON.stringify(result, null, 2))
         setError('')
       } else {
@@ -108,7 +108,7 @@ function App() {
           setOutput(JSON.stringify(result, null, 2))
           setError('')
         } else {
-          setError('jq-wasm not loaded. Only basic operations like ".", ".key", ".array[0]" are supported.')
+          setError('jq-hason not loaded. Only basic operations like ".", ".key", ".array[0]" are supported.')
           setOutput('')
         }
       }

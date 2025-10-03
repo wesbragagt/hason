@@ -52,6 +52,9 @@ jobs:
           path: |
             public/jq.js
             public/jq.wasm
+            public/jq_1-8-1.js
+            public/jq_1-8-1.wasm
+            public/jq-version.json
 
   lint:
     name: Lint & Type Check
@@ -61,17 +64,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/setup-install
 
       - name: Run linting with type checking
-        run: npm run check
+        run: pnpm run check
 
   tests:
     name: Unit & Integration Tests
@@ -85,19 +82,13 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: jq-wasm-files
-          path: public/
+          path: packages/app/public/
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/setup-install
 
       - name: Run unit and integration tests
-        run: npm test
+        run: pnpm run test
 
   # e2e-tests:
   #   name: End-to-End Tests
@@ -143,16 +134,10 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: jq-wasm-files
-          path: public/
+          path: packages/app/public/
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/setup-install
 
       - name: Build application
-        run: npx vite build
+        run: pnpm run build

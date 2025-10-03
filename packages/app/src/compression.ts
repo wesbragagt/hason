@@ -120,7 +120,7 @@ export async function decodeState(encoded: string): Promise<any> {
     const bytes = base58Decode(encoded)
 
     // Step 2: Decompress using inflate
-    const decompressedStream = new Blob([bytes])
+    const decompressedStream = new Blob([new Uint8Array(bytes)])
       .stream()
       .pipeThrough(new DecompressionStream('deflate'))
     
