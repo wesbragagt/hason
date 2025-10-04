@@ -87,8 +87,11 @@ jobs:
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/setup-install
 
+      - name: Build packages
+        run: pnpm build:packages
+
       - name: Run unit and integration tests
-        run: pnpm run test
+        run: NODE_ENV=test pnpm --filter=app test
 
   e2e-tests:
     name: End-to-End Tests

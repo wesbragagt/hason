@@ -11,7 +11,7 @@ export default defineConfig({
     injectRegister: false,
 
     pwaAssets: {
-      disabled: false,
+      disabled: process.env.NODE_ENV === 'test',
       config: true,
     },
 
