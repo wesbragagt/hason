@@ -2,7 +2,7 @@ services:
   hason:
     build:
       context: .
-      dockerfile: Dockerfile.simple
+      dockerfile: Dockerfile.optimized
     ports:
       - "3000:80"
     environment:
