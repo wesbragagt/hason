@@ -7,10 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      sharp:
-        specifier: 0.32.6
-        version: 0.32.6
     devDependencies:
       '@eslint/js':
         specifier: ^9.18.0
