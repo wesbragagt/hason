@@ -20,3 +20,7 @@ runs:
     - name: Install dependencies
       shell: bash
       run: pnpm install --loglevel=error --frozen-lockfile --prefer-offline
+
+    - name: Rebuild Sharp for current platform
+      shell: bash
+      run: pnpm rebuild sharp
