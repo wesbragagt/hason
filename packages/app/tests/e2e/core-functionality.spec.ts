@@ -50,7 +50,7 @@ test.describe('Core Functionality', () => {
     await hasonPage.expectOutputToContain('John');
   });
 
-  test('should display formatted JSON and handle errors', async ({ page }) => {
+  test('should display formatted JSON and handle errors', async () => {
     // Test basic JSON formatting
     await hasonPage.inputJson(testCases.simple.input);
     await hasonPage.switchToOutputTab();
