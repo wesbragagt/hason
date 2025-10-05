@@ -28,6 +28,10 @@ export async function encodeStateToUrl(jsonInput: string, jqFilter: string, acti
       params.set('data', compressedData)
     } catch (err) {
       console.warn('Failed to compress data:', err)
+      // Provide user feedback about compression failure
+      if (typeof window !== 'undefined' && window.alert) {
+        window.alert('Could not compress your data for sharing. The generated URL will not include your data.');
+      }
       // Don't throw the error, just skip adding the data parameter
       // This allows the URL to still be generated with just the tab parameter
     }

@@ -41,7 +41,9 @@ async function loadModule(): Promise<JQModule> {
       const wasmModule = await jqModuleFactory({
         wasmBinary: wasmInstance,
         locateFile: () => {
-          // Not needed since we're providing wasmBinary directly
+          // This function is required by the API but will never be called
+          // because we provide the WASM binary directly via the wasmBinary option.
+          // Returning an empty string is safe and intentional.
           return '';
         }
       });
