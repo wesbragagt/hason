@@ -280,7 +280,7 @@
               echo "  1. Run: nix run .#build-jq-wasm"
               echo "  2. Test the application"
               echo "  3. Commit the changes"
-            ''}"
+            ''};"
           };
 
           # Build container image
