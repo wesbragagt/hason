@@ -41,7 +41,13 @@ jobs:
 
       - name: Build WASM files
         if: steps.cache-wasm.outputs.cache-hit != 'true'
-        run: nix run .#build-jq-wasm
+        run: |
+          nix build .#jq-wasm
+          mkdir -p packages/app/public packages/jq-hason/src/wasm
+          cp -v result/lib/jq*.js packages/app/public/
+          cp -v result/lib/jq*.wasm packages/app/public/
+          cp -v result/lib/jq*.js packages/jq-hason/src/wasm/
+          cp -v result/lib/jq*.wasm packages/jq-hason/src/wasm/
 
       - name: Upload WASM artifacts
         uses: actions/upload-artifact@v4
