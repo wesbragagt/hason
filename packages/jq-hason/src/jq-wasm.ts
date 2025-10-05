@@ -1,8 +1,8 @@
-// ESM-first jq WASM wrapper using vite-plugin-wasm
+// Modern ESM-first jq WASM wrapper using vite-plugin-wasm
 
-// Import WASM module directly using ES modules
+// Import WASM module and JS factory directly using ES modules
 import jqWasmModule from './wasm/jq_1-8-1.wasm?init';
-import jqFactoryScript from './wasm/jq_1-8-1.js?url';
+import jqModuleFactory from './wasm/jq_1-8-1.js';
 
 interface JQModule {
   jq: {
@@ -22,32 +22,7 @@ interface JQModule {
 let jqModule: JQModule | null = null;
 let modulePromise: Promise<JQModule> | null = null;
 
-// Load the jq JavaScript module factory
-async function loadJSModuleFactory(): Promise<any> {
-  try {
-    // Fetch the JavaScript factory function
-    const scriptResponse = await fetch(jqFactoryScript);
-    const scriptText = await scriptResponse.text();
-
-    // Execute the script to get the factory function
-    const script = new Function(`
-      ${scriptText}
-      return jqModule;
-    `);
-
-    const jqModuleFactory = script();
-
-    if (typeof jqModuleFactory !== 'function') {
-      throw new Error(`Expected jqModule to be a function, got ${typeof jqModuleFactory}`);
-    }
-    return jqModuleFactory;
-  } catch (error) {
-    console.error('Error loading jq module:', error);
-    throw error;
-  }
-}
-
-// Load WASM module using vite-plugin-wasm
+// Load WASM module using modern ES module imports
 async function loadModule(): Promise<JQModule> {
   if (jqModule) {
     return jqModule;
@@ -59,13 +34,10 @@ async function loadModule(): Promise<JQModule> {
 
   modulePromise = (async () => {
     try {
-      // Initialize the WASM module
+      // Initialize the WASM module using vite-plugin-wasm
       const wasmInstance = await jqWasmModule();
 
-      // Load the JavaScript factory
-      const jqModuleFactory = await loadJSModuleFactory();
-
-      // Create the module with the WASM instance
+      // Create the module with the WASM instance using direct ES import
       const wasmModule = await jqModuleFactory({
         wasmBinary: wasmInstance,
         locateFile: () => {

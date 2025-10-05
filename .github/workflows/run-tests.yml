@@ -1,4 +1,4 @@
-name: "PR Tests"
+name: "E2E Tests"
 
 on:
   pull_request:
@@ -18,8 +18,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            packages/app/public/jq.js
-            packages/app/public/jq.wasm
+            packages/app/public/jq*.js
+            packages/app/public/jq*.wasm
+            packages/jq-hason/src/wasm/jq*.js
+            packages/jq-hason/src/wasm/jq*.wasm
           key: jq-wasm-${{ hashFiles('flake.nix', 'flake.lock', 'packages/app/public/jq-version.json') }}
 
       - name: Install Nix
@@ -37,40 +39,22 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nix-
 
-      - name: Check the Nix flake
+      - name: Build WASM files
         if: steps.cache-wasm.outputs.cache-hit != 'true'
-        run: nix flake check
-
-      - name: Setup jq WASM files
-        if: steps.cache-wasm.outputs.cache-hit != 'true'
-        run: nix run .#copy-wasm-to-app
+        run: nix run .#build-jq-wasm
 
       - name: Upload WASM artifacts
         uses: actions/upload-artifact@v4
         with:
           name: jq-wasm-files
           path: |
-            packages/app/public/jq.js
-            packages/app/public/jq.wasm
-            packages/app/public/jq_1-8-1.js
-            packages/app/public/jq_1-8-1.wasm
+            packages/app/public/jq*.js
+            packages/app/public/jq*.wasm
+            packages/jq-hason/src/wasm/jq*.js
+            packages/jq-hason/src/wasm/jq*.wasm
             packages/app/public/jq-version.json
 
-  lint:
-    name: Lint & Type Check
-    runs-on: ubuntu-latest
-    needs: build-wasm
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - name: Setup pnpm and install dependencies
-        uses: ./.github/actions/setup-install
-
-      - name: Run linting with type checking
-        run: pnpm run check
-
-  tests:
+  unit-tests:
     name: Unit & Integration Tests
     runs-on: ubuntu-latest
     needs: build-wasm
@@ -82,7 +66,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: jq-wasm-files
-          path: packages/app/public/
+          path: ./
 
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/setup-install
@@ -94,7 +78,7 @@ jobs:
         run: NODE_ENV=test pnpm --filter=app test
 
   e2e-tests:
-    name: End-to-End Tests
+    name: E2E Tests (Preview Build)
     runs-on: ubuntu-latest
     needs: build-wasm
     steps:
@@ -105,7 +89,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: jq-wasm-files
-          path: packages/app/public/
+          path: ./
 
       - name: Setup pnpm and install dependencies
         uses: ./.github/actions/setup-install
@@ -113,28 +97,20 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Build application
+      - name: Build Vite application
         run: pnpm run build
 
-      - name: Run E2E tests
-        run: pnpm run test:e2e
+      - name: Start preview server and run E2E tests
+        run: |
+          # Start preview server in background
+          pnpm run preview &
+          PREVIEW_PID=$!
 
-  build:
-    name: Build Application
-    runs-on: ubuntu-latest
-    needs: build-wasm
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
+          # Wait for server to start
+          timeout 30 bash -c 'until curl -s http://localhost:4173 > /dev/null; do sleep 1; done'
 
-      - name: Download WASM artifacts
-        uses: actions/download-artifact@v5
-        with:
-          name: jq-wasm-files
-          path: packages/app/public/
+          # Run E2E tests against preview server
+          TEST_URL=http://localhost:4173 pnpm run test:e2e
 
-      - name: Setup pnpm and install dependencies
-        uses: ./.github/actions/setup-install
-
-      - name: Build application
-        run: pnpm run build
+          # Clean up
+          kill $PREVIEW_PID

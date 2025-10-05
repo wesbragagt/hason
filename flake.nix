@@ -135,96 +135,6 @@
           '';
         };
 
-        # Docker image with nginx serving the app
-        docker-image = pkgs.dockerTools.buildLayeredImage {
-          name = "hason";
-          tag = "latest";
-
-          contents = with pkgs; [
-            nginx
-            curl  # For health checks
-            bash  # Provides /bin/sh
-            coreutils  # Basic utilities
-            app-with-wasm
-          ];
-
-          config = {
-            ExposedPorts = {
-              "80/tcp" = {};
-            };
-
-            Env = [
-              "NGINX_ENVSUBST_TEMPLATE_DIR=/etc/nginx/templates"
-              "NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx/conf.d"
-            ];
-
-            # Create nginx config and start nginx
-            Cmd = [ "/bin/sh" "-c" ''
-              # Create nginx configuration
-              mkdir -p /etc/nginx/conf.d
-              cat > /etc/nginx/conf.d/default.conf << 'EOF'
-              server {
-                  listen 80;
-                  listen [::]:80;
-                  server_name localhost;
-
-                  root ${app-with-wasm};
-                  index index.html;
-
-                  # Enable gzip compression for better performance
-                  gzip on;
-                  gzip_vary on;
-                  gzip_min_length 1024;
-                  gzip_types
-                      text/plain
-                      text/css
-                      text/xml
-                      text/javascript
-                      application/javascript
-                      application/json
-                      application/xml+rss
-                      application/atom+xml
-                      image/svg+xml
-                      application/wasm;
-
-                  # SPA routing - serve index.html for all routes
-                  location / {
-                      try_files $uri $uri/ /index.html;
-                  }
-
-                  # Cache static assets
-                  location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|wasm)$ {
-                      expires 1y;
-                      add_header Cache-Control "public, immutable";
-                  }
-
-                  # Special handling for WASM files with correct MIME type
-                  location ~* \.wasm$ {
-                      add_header Content-Type application/wasm;
-                      expires 1y;
-                      add_header Cache-Control "public, immutable";
-                  }
-
-                  # Security headers
-                  add_header X-Frame-Options "SAMEORIGIN" always;
-                  add_header X-Content-Type-Options "nosniff" always;
-                  add_header X-XSS-Protection "1; mode=block" always;
-                  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-              }
-              EOF
-
-              # Start nginx
-              exec nginx -g "daemon off;"
-            '' ];
-
-            Labels = {
-              "org.opencontainers.image.title" = "Hason - JSON Formatter";
-              "org.opencontainers.image.description" = "A WebAssembly-powered JSON formatter with jq support";
-              "org.opencontainers.image.version" = "1.0.0";
-              "org.opencontainers.image.source" = "https://github.com/wesbragagt/hason";
-            };
-          };
-        };
 
       in {
         # Development shell
@@ -272,7 +182,6 @@
         packages = {
           jq-wasm = jq-wasm;
           app-with-wasm = app-with-wasm;
-          docker-image = docker-image;
           jq = pkgs.jq;  # Add jq package
           default = jq-wasm;
         };
@@ -417,90 +326,6 @@
             ''}";
           };
 
-          # Build Docker image using Nix
-          build-docker-image = {
-            type = "app";
-            program = "${pkgs.writeShellScript "build-docker-image" ''
-              set -euo pipefail
-
-              echo "🐳 Building Hason Docker image using Nix..."
-
-              # Build the Docker image
-              echo "📦 Building Docker image with Nix..."
-              nix build .#docker-image
-
-              # Load the image into Docker/Podman
-              IMAGE_ARCHIVE="result"
-
-              if command -v docker &> /dev/null; then
-                echo "🐋 Loading image into Docker..."
-                docker load < "$IMAGE_ARCHIVE"
-                RUNTIME="docker"
-              elif command -v podman &> /dev/null; then
-                echo "🦭 Loading image into Podman..."
-                podman load < "$IMAGE_ARCHIVE"
-                RUNTIME="podman"
-              else
-                echo "❌ Neither Docker nor Podman found. Please install one of them."
-                echo "📦 Image built and available at: $IMAGE_ARCHIVE"
-                exit 1
-              fi
-
-              echo "✅ Docker image built and loaded successfully!"
-              echo "🏷️  Image: hason:latest"
-              echo ""
-              echo "🚀 To run the container:"
-              echo "    $RUNTIME run -p 8080:80 hason:latest"
-              echo ""
-              echo "📋 Image info:"
-              $RUNTIME images hason --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.CreatedAt}}\\t{{.Size}}" || true
-            ''}";
-          };
-
-          # Build container image
-          build-app-container = {
-            type = "app";
-            program = "${pkgs.writeShellScript "build-app-container" ''
-              set -euo pipefail
-
-              echo "🐳 Building Hason container image..."
-
-              # Check if Podman is available
-              if ! command -v podman &> /dev/null; then
-                  echo "❌ Podman not found. Please install Podman first."
-                  exit 1
-              fi
-
-              # Check if Podman is working
-              if ! podman info &> /dev/null; then
-                  echo "❌ Podman is not working properly. Please check your Podman installation."
-                  exit 1
-              fi
-
-              # Default image name and tag
-              IMAGE_NAME="''${IMAGE_NAME:-hason}"
-              IMAGE_TAG="''${IMAGE_TAG:-latest}"
-              FULL_IMAGE_NAME="$IMAGE_NAME:$IMAGE_TAG"
-
-              echo "📦 Building image: $FULL_IMAGE_NAME"
-              echo "📂 Using Dockerfile: $(pwd)/Dockerfile"
-
-              # Build the container image with Podman
-              podman build \
-                --tag "$FULL_IMAGE_NAME" \
-                --file Dockerfile \
-                .
-
-              echo "✅ Container image built successfully!"
-              echo "🏷️  Image: $FULL_IMAGE_NAME"
-              echo ""
-              echo "🚀 To run the container:"
-              echo "    podman run -p 8080:80 $FULL_IMAGE_NAME"
-              echo ""
-              echo "📋 Image info:"
-              podman images "$IMAGE_NAME" --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.CreatedAt}}\t{{.Size}}"
-            ''}";
-          };
 
           # Show help information for all available commands
           help = {
@@ -524,9 +349,6 @@
               echo "    nix run .#build-jq-wasm       - Build jq WASM and copy to packages"
               echo "    nix run .#copy-wasm-to-app    - Copy pre-built WASM files to app"
               echo ""
-              echo "  🐳 Container:"
-              echo "    nix run .#build-app-container - Build Podman container image"
-              echo ""
               echo "  📝 Version Management:"
               echo "    nix run .#update-jq-version -- <version> <revision> <sha256>"
               echo "                                   - Update jq version across all files"
@@ -540,15 +362,10 @@
               echo "  3. nix run .#build-jq-wasm     # Build WebAssembly module"
               echo "  4. pnpm run dev                # Start development server"
               echo ""
-              echo "🐳 Container Workflow:"
-              echo "  1. nix run .#build-app-container  # Build container image"
-              echo "  2. podman run -p 8080:80 hason:latest  # Run container"
-              echo ""
               echo "🔗 More Info:"
               echo "  - Development shell includes: emcc, node, jq, wasm tools"
               echo "  - WASM files are copied to packages/app/public/ and packages/jq-hason/src/wasm/"
               echo "  - jq version configuration is stored in packages/app/public/jq-version.json"
-              echo "  - Container uses nginx:alpine and exposes port 80"
             ''}";
           };
         };
