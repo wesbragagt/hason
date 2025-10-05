@@ -237,13 +237,13 @@
                 echo "Example: nix run .#update-jq-version -- \"1.9.0\" \"jq-1.9.0\" \"sha256-newhash\""
                 exit 1
               fi
-              
+
               VERSION="$1"
               REVISION="$2"
               SHA256="$3"
-              
+
               echo "🔄 Updating jq version to $VERSION..."
-              
+
               # Update jq-version.json
               echo "📝 Updating packages/app/public/jq-version.json..."
               cat > packages/app/public/jq-version.json << EOF
@@ -253,22 +253,22 @@
                 "sha256": "$SHA256"
               }
               EOF
-              
+
               # Update jq-hason package.json version
               echo "📝 Updating packages/jq-hason/package.json version..."
               ${pkgs.jq}/bin/jq ".version = \"$VERSION\"" packages/jq-hason/package.json > packages/jq-hason/package.json.tmp
               mv packages/jq-hason/package.json.tmp packages/jq-hason/package.json
-              
+
               # Update fallback version in jq-version.ts
               echo "📝 Updating fallback version in packages/jq-hason/src/jq-version.ts..."
               sed -i "s/version: \"[^\"]*\"/version: \"$VERSION\"/g" packages/jq-hason/src/jq-version.ts
               sed -i "s/revision: \"[^\"]*\"/revision: \"$REVISION\"/g" packages/jq-hason/src/jq-version.ts
               sed -i "s/sha256: \"[^\"]*\"/sha256: \"$SHA256\"/g" packages/jq-hason/src/jq-version.ts
-              
+
               # Update JQ_VERSION constant in index.ts
               echo "📝 Updating JQ_VERSION in packages/jq-hason/src/index.ts..."
               sed -i "s/export const JQ_VERSION = '[^']*'/export const JQ_VERSION = '$VERSION'/g" packages/jq-hason/src/index.ts
-              
+
               echo "✅ jq version updated to $VERSION successfully!"
               echo "📋 Updated files:"
               echo "  - packages/app/public/jq-version.json"
@@ -280,7 +280,102 @@
               echo "  1. Run: nix run .#build-jq-wasm"
               echo "  2. Test the application"
               echo "  3. Commit the changes"
-            ''}";
+            ''}"
+          };
+
+          # Build container image
+          build-app-container = {
+            type = "app";
+            program = "${pkgs.writeShellScript "build-app-container" ''
+              set -euo pipefail
+
+              echo "🐳 Building Hason container image..."
+
+              # Check if Podman is available
+              if ! command -v podman &> /dev/null; then
+                  echo "❌ Podman not found. Please install Podman first."
+                  exit 1
+              fi
+
+              # Check if Podman is working
+              if ! podman info &> /dev/null; then
+                  echo "❌ Podman is not working properly. Please check your Podman installation."
+                  exit 1
+              fi
+
+              # Default image name and tag
+              IMAGE_NAME="''${IMAGE_NAME:-hason}"
+              IMAGE_TAG="''${IMAGE_TAG:-latest}"
+              FULL_IMAGE_NAME="$IMAGE_NAME:$IMAGE_TAG"
+
+              echo "📦 Building image: $FULL_IMAGE_NAME"
+              echo "📂 Using Dockerfile: $(pwd)/Dockerfile"
+
+              # Build the container image with Podman
+              podman build \
+                --tag "$FULL_IMAGE_NAME" \
+                --file Dockerfile \
+                .
+
+              echo "✅ Container image built successfully!"
+              echo "🏷️  Image: $FULL_IMAGE_NAME"
+              echo ""
+              echo "🚀 To run the container:"
+              echo "    podman run -p 8080:80 $FULL_IMAGE_NAME"
+              echo ""
+              echo "📋 Image info:"
+              podman images "$IMAGE_NAME" --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.CreatedAt}}\t{{.Size}}"
+            ''}"
+          };
+
+          # Show help information for all available commands
+          help = {
+            type = "app";
+            program = "${pkgs.writeShellScript "help" ''
+              echo "🚀 jq WebAssembly Development Environment"
+              echo "Development environment for compiling jq to WebAssembly"
+              echo ""
+              echo "📋 Available Commands:"
+              echo ""
+              echo "  🏗️  Development Environment:"
+              echo "    nix develop                    - Enter development shell with all tools"
+              echo "    direnv allow                   - Auto-load development environment"
+              echo ""
+              echo "  📦 Package Management:"
+              echo "    nix build .#jq-wasm           - Build jq WebAssembly module"
+              echo "    nix build .#jq                - Build regular jq binary"
+              echo ""
+              echo "  🔧 Setup & Build:"
+              echo "    nix run .#setup-jq            - Set up jq binary for local development"
+              echo "    nix run .#build-jq-wasm       - Build jq WASM and copy to packages"
+              echo "    nix run .#copy-wasm-to-app    - Copy pre-built WASM files to app"
+              echo ""
+              echo "  🐳 Container:"
+              echo "    nix run .#build-app-container - Build Podman container image"
+              echo ""
+              echo "  📝 Version Management:"
+              echo "    nix run .#update-jq-version -- <version> <revision> <sha256>"
+              echo "                                   - Update jq version across all files"
+              echo ""
+              echo "  ❓ Help:"
+              echo "    nix run .#help                - Show this help message"
+              echo ""
+              echo "💡 Quick Start:"
+              echo "  1. nix develop                 # Enter development environment"
+              echo "  2. nix run .#setup-jq          # Set up jq binary"
+              echo "  3. nix run .#build-jq-wasm     # Build WebAssembly module"
+              echo "  4. pnpm run dev                # Start development server"
+              echo ""
+              echo "🐳 Container Workflow:"
+              echo "  1. nix run .#build-app-container  # Build container image"
+              echo "  2. podman run -p 8080:80 hason:latest  # Run container"
+              echo ""
+              echo "🔗 More Info:"
+              echo "  - Development shell includes: emcc, node, jq, wasm tools"
+              echo "  - WASM files are copied to packages/app/public/ and packages/jq-hason/src/wasm/"
+              echo "  - jq version configuration is stored in packages/app/public/jq-version.json"
+              echo "  - Container uses nginx:alpine and exposes port 80"
+            ''}"
           };
         };
       });
