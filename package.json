@@ -12,6 +12,7 @@
     "preview": "pnpm --filter=app preview",
     "test": "pnpm --filter=app test",
     "test:e2e": "pnpm --filter=app test:e2e",
+    "test:e2e:container": "pnpm --filter=app test:e2e:container",
     "setup:jq": "nix run .#setup-jq",
     "build:wasm": "nix run .#build-jq-wasm",
     "update:jq-version": "nix run .#update-jq-version --"

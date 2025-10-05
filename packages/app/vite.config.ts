@@ -2,11 +2,17 @@
 import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import wasm from 'vite-plugin-wasm'
+import topLevelAwait from 'vite-plugin-top-level-await'
 import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), VitePWA({
+  plugins: [
+    react(),
+    wasm(),
+    topLevelAwait(),
+    VitePWA({
     registerType: 'prompt',
     injectRegister: false,
 
@@ -35,19 +41,24 @@ export default defineConfig({
       type: 'module',
     },
   })],
+  worker: {
+    plugins: () => [
+      wasm(),
+      topLevelAwait()
+    ]
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  optimizeDeps: {
-    exclude: ['jq-hason'],
-  },
-  assetsInclude: ['**/*.wasm'],
   server: {
     fs: {
       allow: ['../..']
     }
+  },
+  optimizeDeps: {
+    exclude: ['jq-hason']
   },
   test: {
     environment: 'happy-dom',

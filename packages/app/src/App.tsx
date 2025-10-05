@@ -13,6 +13,7 @@ import { Split, TabletSmartphone, Copy, Check, CornerDownLeft } from 'lucide-rea
 import { cn, decodeStateFromUrl, updateUrlState } from '@/lib/utils'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { promised } from '../../jq-hason/src/jq-wasm'
 
 let jq: any = null
 
@@ -51,15 +52,15 @@ function App() {
     })
   }, [])
 
-  // Load jq-hason dynamically
+  // Initialize jq-hason
   useEffect(() => {
-    import('jq-hason').then((module) => {
-      jq = module
+    try {
+      jq = { promised }
       setJqLoaded(true)
-    }).catch((err) => {
-      console.error('Failed to load jq-hason:', err)
+    } catch (err) {
+      console.error('Failed to initialize jq-hason:', err)
       setJqLoaded(false)
-    })
+    }
   }, [])
 
   const processJson = async (input: string, filter: string) => {
@@ -80,8 +81,8 @@ function App() {
       }
 
       // Try to use jq-hason if available
-      if (jqLoaded && jq && jq.jq) {
-        const result = await jq.jq.json(parsedInput, filter)
+      if (jqLoaded && jq && jq.promised) {
+        const result = await jq.promised(parsedInput, filter)
         setOutput(JSON.stringify(result, null, 2))
         setError('')
       } else {

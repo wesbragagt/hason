@@ -1,7 +1,8 @@
-// Custom jq WASM wrapper module
-// Provides jq-web compatible API using our custom compiled WASM
+// ESM-first jq WASM wrapper using vite-plugin-wasm
 
-import { getVersionedFilename } from './jq-version';
+// Import WASM module directly using ES modules
+import jqWasmModule from './wasm/jq_1-8-1.wasm?init';
+import jqFactoryScript from './wasm/jq_1-8-1.js?url';
 
 interface JQModule {
   jq: {
@@ -21,144 +22,72 @@ interface JQModule {
 let jqModule: JQModule | null = null;
 let modulePromise: Promise<JQModule> | null = null;
 
-// Detect environment
-const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
-const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
+// Load the jq JavaScript module factory
+async function loadJSModuleFactory(): Promise<any> {
+  try {
+    // Fetch the JavaScript factory function
+    const scriptResponse = await fetch(jqFactoryScript);
+    const scriptText = await scriptResponse.text();
 
-// Load the WASM module
+    // Execute the script to get the factory function
+    const script = new Function(`
+      ${scriptText}
+      return jqModule;
+    `);
+
+    const jqModuleFactory = script();
+
+    if (typeof jqModuleFactory !== 'function') {
+      throw new Error(`Expected jqModule to be a function, got ${typeof jqModuleFactory}`);
+    }
+    return jqModuleFactory;
+  } catch (error) {
+    console.error('Error loading jq module:', error);
+    throw error;
+  }
+}
+
+// Load WASM module using vite-plugin-wasm
 async function loadModule(): Promise<JQModule> {
   if (jqModule) {
     return jqModule;
   }
-  
+
   if (modulePromise) {
     return modulePromise;
   }
-  
-  modulePromise = new Promise((resolve, reject) => {
-    (async () => {
-      try {
-        if (isBrowser) {
-          // Browser environment - load from bundled assets
-          await loadBrowserModule(resolve, reject);
-        } else if (isNode) {
-          // Node.js environment - load from package
-          await loadNodeModule(resolve, reject);
-        } else {
-          reject(new Error('Unsupported environment: neither browser nor Node.js detected'));
-        }
-      } catch (error) {
-        reject(new Error(`Failed to load jq WASM module: ${String(error)}`));
-      }
-    })();
-  });
-  
-  return modulePromise;
-}
 
-// Browser loading logic
-async function loadBrowserModule(resolve: (module: JQModule) => void, reject: (error: Error) => void): Promise<void> {
-  try {
-    // In browser, try to load from the same origin or from package assets
-    const script = document.createElement('script');
-    
-    // Try to load versioned filename, fallback to static
-    let scriptSrc: string;
+  modulePromise = (async () => {
     try {
-      scriptSrc = `/${await getVersionedFilename('jq.js')}`;
-    } catch {
-      // Fallback if version loading fails
-      scriptSrc = '/jq.js';
-    }
-    
-    script.src = scriptSrc;
-    script.async = true;
-  
-    script.onload = async () => {
-      try {
-        // The jq JS file defines a global jqModule function
-        if (typeof (window as any).jqModule === 'function') {
-          const wasmModule = await (window as any).jqModule();
-          jqModule = wasmModule as JQModule;
-          resolve(jqModule);
-        } else {
-          reject(new Error('jqModule function not found on window'));
-        }
-      } catch (error) {
-        reject(new Error(`Failed to initialize WASM module: ${String(error)}`));
-      }
-    };
-    
-    script.onerror = () => {
-      reject(new Error(`Failed to load jq script from ${scriptSrc}`));
-    };
-    
-    document.head.appendChild(script);
-  } catch (error) {
-    reject(new Error(`Browser loading failed: ${String(error)}`));
-  }
-}
+      // Initialize the WASM module
+      const wasmInstance = await jqWasmModule();
 
-// Node.js loading logic  
-async function loadNodeModule(resolve: (module: JQModule) => void, reject: (error: Error) => void): Promise<void> {
-  try {
-    // Dynamic imports for Node.js
-    const fs = await import('fs/promises');
-    const path = await import('path');
-    const { fileURLToPath } = await import('url');
-    
-    // Get the directory of this module
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-    
-    // Read the jq.js file
-    const jqJsPath = path.join(__dirname, '..', 'wasm', 'jq.js');
-    const jqWasmPath = path.join(__dirname, '..', 'wasm', 'jq.wasm');
-    
-    // Check if files exist
-    try {
-      await fs.access(jqJsPath);
-      await fs.access(jqWasmPath);
-    } catch {
-      reject(new Error('jq WASM files not found. Make sure to build the project with: nix run .#build-jq-wasm'));
-      return;
-    }
-    
-    // Read and evaluate the jq.js file
-    const jqJsContent = await fs.readFile(jqJsPath, 'utf-8');
-    
-    // Create a module loader context
-    const Module: any = {
-      locateFile: (filename: string) => {
-        if (filename.endsWith('.wasm')) {
-          return jqWasmPath;
+      // Load the JavaScript factory
+      const jqModuleFactory = await loadJSModuleFactory();
+
+      // Create the module with the WASM instance
+      const wasmModule = await jqModuleFactory({
+        wasmBinary: wasmInstance,
+        locateFile: () => {
+          // Not needed since we're providing wasmBinary directly
+          return '';
         }
-        return filename;
-      }
-    };
-    
-    // Evaluate the jq.js content in a function scope
-    // This is a workaround for Node.js module loading
-    const moduleFactory = new Function('Module', 'exports', jqJsContent + '\nreturn jqModule;');
-    const jqModuleFactory = moduleFactory(Module, {});
-    
-    // Initialize the module
-    if (typeof jqModuleFactory === 'function') {
-      const wasmModule = await jqModuleFactory(Module);
+      });
+
       jqModule = wasmModule as JQModule;
-      resolve(jqModule);
-    } else {
-      reject(new Error('Failed to load jqModule factory function'));
+      return jqModule;
+    } catch (error) {
+      throw new Error(`Failed to load jq WASM module: ${String(error)}`);
     }
-  } catch (error) {
-    reject(new Error(`Node.js loading failed: ${String(error)}`));
-  }
+  })();
+
+  return modulePromise;
 }
 
 // Main API function - mimics jq-web API
 export async function promised(input: any, filter: string): Promise<any> {
   const module = await loadModule();
-  
+
   try {
     const result = await module.jq.process(input, filter);
     return result;

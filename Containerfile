@@ -1,27 +1,26 @@
-# Simplified Docker build that works around Sharp/Alpine issues
-# Uses node:20-slim (Debian) instead of Alpine for better native module support
-
+# Optimized multi-stage container build
 # Stage 1: Nix environment for WASM building
 FROM nixos/nix:latest AS nix-builder
 
-# Enable flakes (git is already installed)
+# Enable flakes (git is already installed in nixos/nix image)
 RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf
 
 WORKDIR /build
 
 # Copy only files needed for Nix build
 COPY flake.nix flake.lock ./
-COPY packages/app/public/jq-version.json ./packages/app/public/jq-version.json  
+COPY packages/app/public/jq-version.json ./packages/app/public/jq-version.json
 COPY packages/jq-hason/src/wasm/ ./packages/jq-hason/src/wasm/
 
 # Build WASM files
 RUN nix run .#copy-wasm-to-app
 
-# Stage 2: Node.js environment for SPA building  
-FROM node:20-slim AS node-builder
+# Stage 2: Node.js environment for SPA building
+FROM node:20-alpine AS node-builder
 
-# Install pnpm
-RUN npm install -g pnpm@latest
+# Install build tools and pnpm
+RUN apk add --no-cache python3 make g++ && \
+    npm install -g pnpm@latest
 
 WORKDIR /app
 
@@ -30,8 +29,10 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/app/package.json ./packages/app/
 COPY packages/jq-hason/package.json ./packages/jq-hason/
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install dependencies and allow build scripts for native modules
+RUN pnpm install --frozen-lockfile && \
+    pnpm approve-builds sharp @tailwindcss/oxide esbuild && \
+    pnpm rebuild
 
 # Copy source code
 COPY packages/ ./packages/
@@ -65,7 +66,7 @@ server {
     server_name localhost;
     root /usr/share/nginx/html;
     index index.html;
-    
+
     # Gzip compression
     gzip on;
     gzip_vary on;
@@ -82,19 +83,19 @@ server {
         application/atom+xml
         image/svg+xml
         application/wasm;
-    
+
     # SPA routing
     location / {
         try_files $uri $uri/ /index.html;
     }
-    
+
     # Static asset caching
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
         expires 1y;
         add_header Cache-Control "public, immutable";
         add_header X-Content-Type-Options "nosniff";
     }
-    
+
     # WASM files with correct MIME type and caching
     location ~* \.wasm$ {
         add_header Content-Type "application/wasm";
@@ -102,11 +103,16 @@ server {
         add_header Cache-Control "public, immutable";
         add_header X-Content-Type-Options "nosniff";
     }
-    
+
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Prevent access to sensitive files
+    location ~ /\. {
+        deny all;
+    }
 }
 EOF
 
@@ -115,12 +121,15 @@ COPY --from=node-builder /app/packages/app/dist /usr/share/nginx/html
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost/ || exit 1
+    CMD curl -f http://localhost/health || curl -f http://localhost/ || exit 1
 
 # Container metadata
 LABEL org.opencontainers.image.title="Hason - JSON Formatter" \
       org.opencontainers.image.description="WebAssembly-powered JSON formatter with jq support" \
-      org.opencontainers.image.source="https://github.com/wesbragagt/hason"
+      org.opencontainers.image.source="https://github.com/wesbragagt/hason" \
+      org.opencontainers.image.documentation="https://github.com/wesbragagt/hason/blob/main/README.md"
 
 EXPOSE 80
+
+# Use exec form for better signal handling
 CMD ["nginx", "-g", "daemon off;"]

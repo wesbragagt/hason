@@ -2,7 +2,6 @@
 // Main API exports
 
 export { promised } from './jq-wasm';
-export { getVersionedFilename, getJQVersion } from './jq-version';
 
 // API compatible with test expectations
 import { promised } from './jq-wasm';
@@ -12,7 +11,7 @@ export const jq = {
   json: async (input: any, filter: string): Promise<any> => {
     return await promised(input, filter);
   },
-  
+
   // Return string representation
   raw: async (input: any, filter: string): Promise<string> => {
     const result = await promised(input, filter);
@@ -44,9 +43,6 @@ export interface JQModule {
   ALLOC_NORMAL: number;
 }
 
-// Version information - re-export from jq-version to maintain single source of truth
-export { getJQVersion as getVersion } from './jq-version';
-
-// For backwards compatibility, provide synchronous version constant
-// This matches the fallback version in jq-version.ts
+// Simplified version constant
 export const JQ_VERSION = '1.8.1';
+export const getJQVersion = () => JQ_VERSION;
