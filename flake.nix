@@ -280,7 +280,7 @@
               echo "  1. Run: nix run .#build-jq-wasm"
               echo "  2. Test the application"
               echo "  3. Commit the changes"
-            '';"
+            ''};"
           };
 
           # Build container image
@@ -325,7 +325,7 @@
               echo ""
               echo "📋 Image info:"
               podman images "$IMAGE_NAME" --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.CreatedAt}}\t{{.Size}}"
-            '';"
+            ''};"
           };
 
           # Show help information for all available commands
@@ -375,7 +375,7 @@
               echo "  - WASM files are copied to packages/app/public/ and packages/jq-hason/src/wasm/"
               echo "  - jq version configuration is stored in packages/app/public/jq-version.json"
               echo "  - Container uses nginx:alpine and exposes port 80"
-            '';"
+            ''};"
           };
         };
       });
