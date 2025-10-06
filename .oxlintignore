@@ -29,6 +29,3 @@ Thumbs.db
 # Test reports
 test-results/
 playwright-report/
-
-# WASM files
-src/lib/jq-wasm/wasm/

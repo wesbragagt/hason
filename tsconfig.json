@@ -21,6 +21,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "tests"],
-  "exclude": ["tests/integration/*.browser.test.ts", "tests/e2e"]
+  "include": ["src", "tests"]
 }
