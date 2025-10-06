@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "check": "oxlint --type-aware src tests",
-    "lint": "oxlint --type-aware src tests",
+    "check": "oxlint --type-aware --ignore-pattern='**/jq-wasm/wasm/**' src tests",
+    "lint": "oxlint --type-aware --ignore-pattern='**/jq-wasm/wasm/**' src tests",
     "preview": "vite preview",
     "test": "npm run test:unit",
     "test:unit": "vitest run tests/unit",
@@ -89,7 +89,9 @@
       ".cache/",
       ".parcel-cache/",
       "test-results/",
-      "playwright-report/"
+      "playwright-report/",
+      "src/lib/jq-wasm/wasm/*.js",
+      "src/lib/jq-wasm/wasm/*.wasm"
     ]
   },
   "description": "A fast, modern JSON formatter and processor that works offline. Transform, validate, and format JSON data with jq filters in your browser.",
