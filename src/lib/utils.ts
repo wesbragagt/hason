@@ -89,7 +89,16 @@ export async function decodeStateFromUrl(): Promise<{ jsonInput: string; jqFilte
   }
 }
 
-export async function updateUrlState(jsonInput: string, jqFilter: string, activeTab?: string): Promise<void> {
+// Debounce utility
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+  let timeout: NodeJS.Timeout | null = null
+  return ((...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
+  }) as T
+}
+
+async function _updateUrlState(jsonInput: string, jqFilter: string, activeTab?: string): Promise<void> {
   const params = new URLSearchParams()
   
   // Add tab parameter first
@@ -100,20 +109,45 @@ export async function updateUrlState(jsonInput: string, jqFilter: string, active
   // Embed filter and data into a single data object
   if (jsonInput.trim() || (jqFilter && jqFilter !== '.')) {
     try {
+      let parsedData = null
+
+      // Only try to parse JSON if it's not empty and appears to be complete
+      if (jsonInput.trim()) {
+        try {
+          parsedData = JSON.parse(jsonInput)
+        } catch (parseErr) {
+          // Don't log warnings for incomplete JSON during typing
+          // Only update URL with filter if JSON is invalid
+          if (jqFilter && jqFilter !== '.') {
+            const dataWithFilter = {
+              filter: jqFilter,
+              data: null
+            }
+            const compressedData = await encodeState(dataWithFilter)
+            params.set('data', compressedData)
+          }
+          return // Exit early, don't update URL with invalid JSON
+        }
+      }
+
       const dataWithFilter = {
         filter: jqFilter,
-        data: jsonInput.trim() ? JSON.parse(jsonInput) : null
+        data: parsedData
       }
       const compressedData = await encodeState(dataWithFilter)
       params.set('data', compressedData)
     } catch (err) {
       console.warn('Failed to compress data:', err)
+      return // Exit early on compression errors
     }
   }
   
-  const newUrl = params.toString() 
+  const newUrl = params.toString()
     ? `${window.location.pathname}?${params.toString()}`
     : window.location.pathname
-    
+
   window.history.replaceState({}, '', newUrl)
 }
+
+// Debounced version of updateUrlState with 500ms delay
+export const updateUrlState = debounce(_updateUrlState, 500)
