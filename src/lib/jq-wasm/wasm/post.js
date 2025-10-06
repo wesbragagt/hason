@@ -1,56 +1,120 @@
 // Post-JS script for jq WASM module
 // This runs after the WASM module is loaded but before it's ready
 
-// Helper functions for jq operations
-Module['jq'] = {
-  // Initialize jq context
-  init: function() {
-    return Module.ccall('jq_init', 'number', [], []);
-  },
+// Helper function to run jq with input and filter
+Module['json'] = async function(input, filter) {
+  const inputStr = typeof input === 'string' ? input : JSON.stringify(input);
+  const outputStr = await Module['raw'](inputStr, filter, ['-c']);
   
-  // Compile a jq filter
-  compile: function(jqState, filter) {
-    var filterPtr = Module.allocate(Module.intArrayFromString(filter), 'i8', Module.ALLOC_NORMAL);
-    var result = Module.ccall('jq_compile', 'number', ['number', 'number'], [jqState, filterPtr]);
-    Module._free(filterPtr);
-    return result;
-  },
+  if (!outputStr || outputStr.trim() === '') {
+    return null;
+  }
   
-  // Process input with compiled filter
-  next: function(jqState) {
-    return Module.ccall('jq_next', 'number', ['number'], [jqState]);
-  },
+  // Handle multiple outputs (newline separated)
+  if (outputStr.indexOf('\n') !== -1) {
+    return outputStr.trim().split('\n').map(line => JSON.parse(line));
+  }
   
-  // Cleanup jq context
-  teardown: function(jqState) {
-    Module.ccall('jq_teardown', 'void', ['number'], [jqState]);
-  },
+  return JSON.parse(outputStr.trim());
+};
+
+// Raw function that processes string input and returns string output
+Module['raw'] = async function(inputStr, filter, args = []) {
+  // Ensure FS is initialized
+  if (!Module.FS) {
+    throw new Error('FileSystem not available');
+  }
   
-  // High-level API function
-  process: function(input, filter) {
-    return new Promise(function(resolve, reject) {
-      try {
-        var jqState = Module.jq.init();
-        if (!jqState) {
-          reject(new Error('Failed to initialize jq'));
-          return;
+  const FS = Module.FS;
+  
+  // Store original streams
+  const originalStdin = FS.streams[0];
+  const originalStdout = FS.streams[1];
+  const originalStderr = FS.streams[2];
+  
+  try {
+    // Create input file
+    FS.writeFile('/tmp/input.json', inputStr);
+    
+    // Prepare arguments: jq [filter] [input-file]
+    const jqArgs = [filter, '/tmp/input.json', ...args];
+    
+    // Capture output
+    let stdoutBuffer = '';
+    let stderrBuffer = '';
+    
+    // Override stdout/stderr
+    FS.streams[1] = {
+      tty: {
+        output: [],
+        ops: {
+          put_char: function(tty, val) {
+            if (val === null || val === 10) {
+              stdoutBuffer += String.fromCharCode(...tty.output) + '\n';
+              tty.output = [];
+            } else if (val !== 0) {
+              tty.output.push(val);
+            }
+          },
+          fsync: function(tty) {
+            if (tty.output && tty.output.length > 0) {
+              stdoutBuffer += String.fromCharCode(...tty.output);
+              tty.output = [];
+            }
+          }
         }
-        
-        var compileResult = Module.jq.compile(jqState, filter);
-        if (compileResult !== 0) {
-          Module.jq.teardown(jqState);
-          reject(new Error('Failed to compile jq filter: ' + filter));
-          return;
-        }
-        
-        // Set input (this would need more implementation)
-        // For now, just return the input as a placeholder
-        Module.jq.teardown(jqState);
-        resolve(input);
-      } catch (error) {
-        reject(error);
       }
-    });
+    };
+    
+    FS.streams[2] = {
+      tty: {
+        output: [],
+        ops: {
+          put_char: function(tty, val) {
+            if (val === null || val === 10) {
+              stderrBuffer += String.fromCharCode(...tty.output) + '\n';
+              tty.output = [];
+            } else if (val !== 0) {
+              tty.output.push(val);
+            }
+          },
+          fsync: function(tty) {
+            if (tty.output && tty.output.length > 0) {
+              stderrBuffer += String.fromCharCode(...tty.output);
+              tty.output = [];
+            }
+          }
+        }
+      }
+    };
+    
+    // Call main with arguments
+    const exitCode = Module.callMain(jqArgs);
+    
+    // Cleanup
+    try {
+      FS.unlink('/tmp/input.json');
+    } catch(e) {
+      // Ignore cleanup errors
+    }
+    
+    // Restore original streams
+    FS.streams[0] = originalStdin;
+    FS.streams[1] = originalStdout;
+    FS.streams[2] = originalStderr;
+    
+    if (exitCode !== 0) {
+      throw new Error(stderrBuffer || `jq exited with code ${exitCode}`);
+    }
+    
+    return stdoutBuffer;
+    
+  } catch (error) {
+    // Restore streams on error
+    FS.streams[0] = originalStdin;
+    FS.streams[1] = originalStdout;
+    FS.streams[2] = originalStderr;
+    throw error;
   }
 };
 

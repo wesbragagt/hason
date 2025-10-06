@@ -5,18 +5,11 @@ import jqScriptUrl from './wasm/jq_1-8-1.js?url';
 import jqWasmUrl from './wasm/jq_1-8-1.wasm?url';
 
 interface JQModule {
-  jq: {
-    init(): number;
-    compile(jqState: number, filter: string): number;
-    next(jqState: number): number;
-    teardown(jqState: number): void;
-    process(input: any, filter: string): Promise<any>;
-  };
+  json(input: any, filter: string): Promise<any>;
+  raw(input: string, filter: string, args?: string[]): Promise<string>;
+  callMain(args: string[]): number;
+  FS: any;
   ccall: (name: string, returnType: string, argTypes: string[], args: any[]) => any;
-  allocate: (data: number[], type: string, allocType: number) => number;
-  intArrayFromString: (str: string) => number[];
-  _free: (ptr: number) => void;
-  ALLOC_NORMAL: number;
 }
 
 // Declare global jqModule from the UMD module
@@ -81,14 +74,8 @@ async function loadModule(): Promise<JQModule> {
   return modulePromise;
 }
 
-// Main API function - mimics jq-web API
+// Main API function - uses the json() function from post.js
 export async function promised(input: any, filter: string): Promise<any> {
   const module = await loadModule();
-
-  try {
-    const result = await module.jq.process(input, filter);
-    return result;
-  } catch (error) {
-    throw error;
-  }
+  return await module.json(input, filter);
 }
