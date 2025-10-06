@@ -172,5 +172,10 @@ test-results/
 playwright-report/
 playwright/.cache/
 
-# jq binaries built by CI
-public/jq*
+# jq binaries and WASM files built by CI
+public/jq
+public/jq.js
+public/jq.wasm
+public/jq_*.js
+public/jq_*.wasm
+public/jq_*.mjs

@@ -27,9 +27,11 @@ This is "hason" - a React-based Progressive Web App (PWA) for JSON formatting. T
 src/
 ├── App.tsx              # Main application component
 ├── main.tsx             # React app entry point
-├── PWABadge.tsx         # PWA update notification component
-├── vite-env.d.ts        # Vite TypeScript definitions
-└── assets/              # Static assets (React logo, etc.)
+├── lib/
+│   └── jq-wasm/         # WebAssembly jq processing module
+├── components/          # Shared React components
+├── assets/              # Static assets (logos, etc.)
+└── PWABadge.tsx        # PWA update notification component
 ```
 
 ### Key Configuration Files

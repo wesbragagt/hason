@@ -4,23 +4,16 @@ description: "Manages shared pnpm setup and install for dependencies and caching
 runs:
   using: "composite"
   steps:
-    - uses: pnpm/action-setup@v4
-      name: Install pnpm
-      with:
-        version: 10.13.1
-        run_install: false
-      # Note: You don't need to run pnpm store prune at the end; post-action has already taken care of that.
-
     - name: Install Node.js
       uses: actions/setup-node@v4
       with:
         node-version-file: ".nvmrc"
-        cache: "pnpm"
+        cache: "npm"
 
     - name: Install dependencies
       shell: bash
-      run: pnpm install --loglevel=error --frozen-lockfile --prefer-offline
+      run: npm ci --loglevel=error
 
     - name: Rebuild Sharp for current platform
       shell: bash
-      run: pnpm rebuild sharp
+      run: npm rebuild sharp

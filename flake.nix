@@ -12,8 +12,47 @@
         pkgs = nixpkgs.legacyPackages.${system};
         
         # Read jq version configuration
-        jqVersionConfig = builtins.fromJSON (builtins.readFile ./packages/app/public/jq-version.json);
+        jqVersionConfig = builtins.fromJSON (builtins.readFile ./public/jq-version.json);
         
+        # Web application with WASM files
+        app-with-wasm = pkgs.stdenv.mkDerivation {
+          pname = "hason-app";
+          version = "1.0.0";
+
+          src = ./.;
+
+          nativeBuildInputs = with pkgs; [
+            nodejs_22
+            coreutils
+            cacert
+          ];
+
+          buildInputs = [ jq-wasm ];
+
+          configurePhase = ''
+            export HOME=$TMPDIR
+            export npm_config_cache=$TMPDIR/.npm
+
+            # Copy WASM files from jq-wasm build to public directory
+            mkdir -p public
+            cp -v ${jq-wasm}/lib/jq*.js public/
+            cp -v ${jq-wasm}/lib/jq*.wasm public/
+          '';
+
+          buildPhase = ''
+            # Install dependencies
+            npm ci
+
+            # Build the application
+            npm run build
+          '';
+
+          installPhase = ''
+            mkdir -p $out
+            cp -r dist/* $out/
+          '';
+        };
+
         # Custom jq WASM build (manual approach works better than buildEmscriptenPackage)
         jq-wasm = pkgs.stdenv.mkDerivation {
           pname = "jq-wasm";
@@ -74,8 +113,8 @@
               -s TOTAL_MEMORY=16777216 \
               -s NO_EXIT_RUNTIME=1 \
               -s INVOKE_RUN=0 \
-              --pre-js ${./packages/jq-hason/src/wasm/pre.js} \
-              --post-js ${./packages/jq-hason/src/wasm/post.js} \
+              --pre-js ${./src/lib/jq-wasm/wasm/pre.js} \
+              --post-js ${./src/lib/jq-wasm/wasm/post.js} \
               -o jq.js \
               .libs/libjq.a src/main.o
           '';
@@ -93,7 +132,8 @@
             cp jq.wasm $out/lib/jq.wasm
           '';
         };
-        
+
+
       in {
         # Development shell
         devShells.default = pkgs.mkShell {
@@ -109,7 +149,7 @@
             git
             
             # JavaScript/Node.js for testing
-            nodejs_20
+            nodejs_22
             
             # jq for reference/testing
             jq
@@ -135,10 +175,11 @@
             mkdir -p "$EM_CACHE"
           '';
         };
-        
+
         # Package outputs
         packages = {
           jq-wasm = jq-wasm;
+          app-with-wasm = app-with-wasm;
           jq = pkgs.jq;  # Add jq package
           default = jq-wasm;
         };
@@ -152,24 +193,24 @@
               set -e
               echo "🔧 Setting up jq for local development..."
               
-              # Create directory
-              mkdir -p packages/app/public
-              
-              # Copy system jq if available, otherwise use nix jq
-              if command -v jq &> /dev/null; then
-                echo "Using system jq binary..."
-                cp "$(which jq)" packages/app/public/jq
-                chmod +x packages/app/public/jq
-                echo "✓ Using system jq: $(packages/app/public/jq --version)"
-              else
-                echo "Using Nix jq binary..."
-                cp ${pkgs.jq}/bin/jq packages/app/public/jq
-                chmod +x packages/app/public/jq
-                echo "✓ Using Nix jq: $(packages/app/public/jq --version)"
-              fi
-              
-              echo "🎉 jq setup complete! You can now run:"
-              echo "  pnpm run dev"
+               # Create directory
+               mkdir -p public
+               
+               # Copy system jq if available, otherwise use nix jq
+               if command -v jq &> /dev/null; then
+                 echo "Using system jq binary..."
+                 cp "$(which jq)" public/jq
+                 chmod +x public/jq
+                 echo "✓ Using system jq: $(public/jq --version)"
+               else
+                 echo "Using Nix jq binary..."
+                 cp ${pkgs.jq}/bin/jq public/jq
+                 chmod +x public/jq
+                 echo "✓ Using Nix jq: $(public/jq --version)"
+               fi
+               
+               echo "🎉 jq setup complete! You can now run:"
+               echo "  npm run dev"
             ''}";
           };
 
@@ -191,18 +232,18 @@
               echo "📦 Building jq-wasm package with Nix..."
               nix build .#jq-wasm
               
-              # Copy output to app public directory and jq-hason package
+              # Copy output to public directory and jq-wasm library
               echo "📁 Copying WASM files to directories..."
-              mkdir -p packages/app/public packages/jq-hason/src/wasm
-              cp -v result/lib/jq*.js packages/app/public/
-              cp -v result/lib/jq*.wasm packages/app/public/
-              cp -v result/lib/jq*.js packages/jq-hason/src/wasm/
-              cp -v result/lib/jq*.wasm packages/jq-hason/src/wasm/
+              mkdir -p public src/lib/jq-wasm/wasm
+              cp -v result/lib/jq*.js public/
+              cp -v result/lib/jq*.wasm public/
+              cp -v result/lib/jq*.js src/lib/jq-wasm/wasm/
+              cp -v result/lib/jq*.wasm src/lib/jq-wasm/wasm/
               
               echo "✅ jq WASM module built successfully!"
-              echo "📂 Files available in packages/app/public/ and packages/jq-hason/src/wasm/ directories:"
-              ls -la packages/app/public/jq*
-              ls -la packages/jq-hason/src/wasm/jq*
+              echo "📂 Files available in public/ and src/lib/jq-wasm/wasm/ directories:"
+              ls -la public/jq*
+              ls -la src/lib/jq-wasm/wasm/jq*
             ''}";
           };
 
@@ -218,13 +259,13 @@
                 nix build .#jq-wasm
               fi
               
-              # Copy files
-              mkdir -p packages/app/public
-              cp -v result/lib/jq*.js packages/app/public/
-              cp -v result/lib/jq*.wasm packages/app/public/
-              
-              echo "✅ WASM files copied to packages/app/public/"
-              ls -la packages/app/public/jq*
+               # Copy files
+               mkdir -p public
+               cp -v result/lib/jq*.js public/
+               cp -v result/lib/jq*.wasm public/
+               
+               echo "✅ WASM files copied to public/"
+               ls -la public/jq*
             ''}";
           };
 
@@ -237,49 +278,86 @@
                 echo "Example: nix run .#update-jq-version -- \"1.9.0\" \"jq-1.9.0\" \"sha256-newhash\""
                 exit 1
               fi
-              
+
               VERSION="$1"
               REVISION="$2"
               SHA256="$3"
-              
+
               echo "🔄 Updating jq version to $VERSION..."
-              
-              # Update jq-version.json
-              echo "📝 Updating packages/app/public/jq-version.json..."
-              cat > packages/app/public/jq-version.json << EOF
-              {
-                "version": "$VERSION",
-                "revision": "$REVISION",
-                "sha256": "$SHA256"
-              }
-              EOF
-              
-              # Update jq-hason package.json version
-              echo "📝 Updating packages/jq-hason/package.json version..."
-              ${pkgs.jq}/bin/jq ".version = \"$VERSION\"" packages/jq-hason/package.json > packages/jq-hason/package.json.tmp
-              mv packages/jq-hason/package.json.tmp packages/jq-hason/package.json
-              
-              # Update fallback version in jq-version.ts
-              echo "📝 Updating fallback version in packages/jq-hason/src/jq-version.ts..."
-              sed -i "s/version: \"[^\"]*\"/version: \"$VERSION\"/g" packages/jq-hason/src/jq-version.ts
-              sed -i "s/revision: \"[^\"]*\"/revision: \"$REVISION\"/g" packages/jq-hason/src/jq-version.ts
-              sed -i "s/sha256: \"[^\"]*\"/sha256: \"$SHA256\"/g" packages/jq-hason/src/jq-version.ts
-              
-              # Update JQ_VERSION constant in index.ts
-              echo "📝 Updating JQ_VERSION in packages/jq-hason/src/index.ts..."
-              sed -i "s/export const JQ_VERSION = '[^']*'/export const JQ_VERSION = '$VERSION'/g" packages/jq-hason/src/index.ts
-              
-              echo "✅ jq version updated to $VERSION successfully!"
-              echo "📋 Updated files:"
-              echo "  - packages/app/public/jq-version.json"
-              echo "  - packages/jq-hason/package.json"
-              echo "  - packages/jq-hason/src/jq-version.ts"
-              echo "  - packages/jq-hason/src/index.ts"
+
+               # Update jq-version.json
+               echo "📝 Updating public/jq-version.json..."
+               cat > public/jq-version.json << EOF
+               {
+                 "version": "$VERSION",
+                 "revision": "$REVISION",
+                 "sha256": "$SHA256"
+               }
+               EOF
+
+               # Update JQ_VERSION constant in index.ts
+               echo "📝 Updating JQ_VERSION in src/lib/jq-wasm/index.ts..."
+               sed -i "s/export const JQ_VERSION = '[^']*'/export const JQ_VERSION = '$VERSION'/g" src/lib/jq-wasm/index.ts
+
+               # Update jq-version.ts within library
+               echo "📝 Updating fallback version in src/lib/jq-wasm/jq-version.ts..."
+               sed -i "s/version: \"[^\"]*\"/version: \"$VERSION\"/g" src/lib/jq-wasm/jq-version.ts
+               sed -i "s/revision: \"[^\"]*\"/revision: \"$REVISION\"/g" src/lib/jq-wasm/jq-version.ts
+               sed -i "s/sha256: \"[^\"]*\"/sha256: \"$SHA256\"/g" src/lib/jq-wasm/jq-version.ts
+
+               echo "✅ jq version updated to $VERSION successfully!"
+               echo "📋 Updated files:"
+               echo "  - public/jq-version.json"
+               echo "  - src/lib/jq-wasm/index.ts"
+               echo "  - src/lib/jq-wasm/jq-version.ts"
+               echo ""
+               echo "🔄 Next steps:"
+               echo "  1. Run: nix run .#build-jq-wasm"
+               echo "  2. Test the application"
+               echo "  3. Commit the changes"
+            ''}";
+          };
+
+
+          # Show help information for all available commands
+          help = {
+            type = "app";
+            program = "${pkgs.writeShellScript "help" ''
+              echo "🚀 jq WebAssembly Development Environment"
+              echo "Development environment for compiling jq to WebAssembly"
               echo ""
-              echo "🔄 Next steps:"
-              echo "  1. Run: nix run .#build-jq-wasm"
-              echo "  2. Test the application"
-              echo "  3. Commit the changes"
+              echo "📋 Available Commands:"
+              echo ""
+              echo "  🏗️  Development Environment:"
+              echo "    nix develop                    - Enter development shell with all tools"
+              echo "    direnv allow                   - Auto-load development environment"
+              echo ""
+              echo "  📦 Package Management:"
+              echo "    nix build .#jq-wasm           - Build jq WebAssembly module"
+              echo "    nix build .#jq                - Build regular jq binary"
+              echo ""
+              echo "  🔧 Setup & Build:"
+              echo "    nix run .#setup-jq            - Set up jq binary for local development"
+              echo "    nix run .#build-jq-wasm       - Build jq WASM and copy to packages"
+              echo "    nix run .#copy-wasm-to-app    - Copy pre-built WASM files to app"
+              echo ""
+              echo "  📝 Version Management:"
+              echo "    nix run .#update-jq-version -- <version> <revision> <sha256>"
+              echo "                                   - Update jq version across all files"
+              echo ""
+              echo "  ❓ Help:"
+              echo "    nix run .#help                - Show this help message"
+              echo ""
+              echo "💡 Quick Start:"
+              echo "  1. nix develop                 # Enter development environment"
+              echo "  2. nix run .#setup-jq          # Set up jq binary"
+              echo "  3. nix run .#build-jq-wasm     # Build WebAssembly module"
+              echo "  4. pnpm run dev                # Start development server"
+              echo ""
+              echo "🔗 More Info:"
+              echo "  - Development shell includes: emcc, node, jq, wasm tools"
+               echo "  - WASM files are copied to public/ and src/lib/jq-wasm/wasm/"
+               echo "  - jq version configuration is stored in public/jq-version.json"
             ''}";
           };
         };
