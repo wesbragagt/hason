@@ -34,14 +34,14 @@ jobs:
       - name: Setup jq and WASM files
         run: nix run .#copy-wasm-to-app
       
-       - name: Setup npm and install dependencies
-         uses: ./.github/actions/setup-install
-       
-       - name: Run tests
-         run: npm run test
-       
-       - name: Build application
-         run: npm run build
+      - name: Setup npm and install dependencies
+        uses: ./.github/actions/setup-install
+      
+      - name: Run tests
+        run: npm run test
+      
+      - name: Build application
+        run: npm run build
       
       - name: Create changelog
         id: changelog

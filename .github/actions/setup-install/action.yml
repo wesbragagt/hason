@@ -4,16 +4,16 @@ description: "Manages shared pnpm setup and install for dependencies and caching
 runs:
   using: "composite"
   steps:
-     - name: Install Node.js
-       uses: actions/setup-node@v4
-       with:
-         node-version-file: ".nvmrc"
-         cache: "npm"
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: ".nvmrc"
+        cache: "npm"
 
-     - name: Install dependencies
-       shell: bash
-       run: npm ci --loglevel=error
+    - name: Install dependencies
+      shell: bash
+      run: npm ci --loglevel=error
 
-     - name: Rebuild Sharp for current platform
-       shell: bash
-       run: npm rebuild sharp
+    - name: Rebuild Sharp for current platform
+      shell: bash
+      run: npm rebuild sharp

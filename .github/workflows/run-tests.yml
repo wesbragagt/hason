@@ -13,16 +13,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-       - name: Cache WASM files
-         id: cache-wasm
-         uses: actions/cache@v4
-         with:
-           path: |
-             public/jq*.js
-             public/jq*.wasm
-             src/lib/jq-wasm/wasm/jq*.js
-             src/lib/jq-wasm/wasm/jq*.wasm
-           key: jq-wasm-${{ hashFiles('flake.nix', 'flake.lock', 'public/jq-version.json') }}
+      - name: Cache WASM files
+        id: cache-wasm
+        uses: actions/cache@v4
+        with:
+          path: |
+            public/jq*.js
+            public/jq*.wasm
+            src/lib/jq-wasm/wasm/jq*.js
+            src/lib/jq-wasm/wasm/jq*.wasm
+          key: jq-wasm-${{ hashFiles('flake.nix', 'flake.lock', 'public/jq-version.json') }}
 
       - name: Install Nix
         if: steps.cache-wasm.outputs.cache-hit != 'true'
@@ -39,26 +39,26 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nix-
 
-       - name: Build WASM files
-         if: steps.cache-wasm.outputs.cache-hit != 'true'
-         run: |
-           nix build .#jq-wasm
-           mkdir -p public src/lib/jq-wasm/wasm
-           cp -v result/lib/jq*.js public/
-           cp -v result/lib/jq*.wasm public/
-           cp -v result/lib/jq*.js src/lib/jq-wasm/wasm/
-           cp -v result/lib/jq*.wasm src/lib/jq-wasm/wasm/
+      - name: Build WASM files
+        if: steps.cache-wasm.outputs.cache-hit != 'true'
+        run: |
+          nix build .#jq-wasm
+          mkdir -p public src/lib/jq-wasm/wasm
+          cp -v result/lib/jq*.js public/
+          cp -v result/lib/jq*.wasm public/
+          cp -v result/lib/jq*.js src/lib/jq-wasm/wasm/
+          cp -v result/lib/jq*.wasm src/lib/jq-wasm/wasm/
 
-       - name: Upload WASM artifacts
-         uses: actions/upload-artifact@v4
-         with:
-           name: jq-wasm-files
-           path: |
-             public/jq*.js
-             public/jq*.wasm
-             src/lib/jq-wasm/wasm/jq*.js
-             src/lib/jq-wasm/wasm/jq*.wasm
-             public/jq-version.json
+      - name: Upload WASM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: jq-wasm-files
+          path: |
+            public/jq*.js
+            public/jq*.wasm
+            src/lib/jq-wasm/wasm/jq*.js
+            src/lib/jq-wasm/wasm/jq*.wasm
+            public/jq-version.json
 
   unit-tests:
     name: Unit & Integration Tests
@@ -74,11 +74,11 @@ jobs:
           name: jq-wasm-files
           path: ./
 
-       - name: Setup npm and install dependencies
-         uses: ./.github/actions/setup-install
-       
-       - name: Run unit and integration tests
-         run: NODE_ENV=test npm run test
+      - name: Setup npm and install dependencies
+        uses: ./.github/actions/setup-install
+      
+      - name: Run unit and integration tests
+        run: NODE_ENV=test npm run test
 
   e2e-tests:
     name: E2E Tests (Preview Build)
@@ -94,26 +94,26 @@ jobs:
           name: jq-wasm-files
           path: ./
 
-      - name: Setup pnpm and install dependencies
+      - name: Setup npm and install dependencies
         uses: ./.github/actions/setup-install
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
       - name: Build Vite application
-        run: pnpm run build
+        run: npm run build
 
       - name: Start preview server and run E2E tests
         run: |
           # Start preview server in background
-          pnpm run preview &
+          npm run preview &
           PREVIEW_PID=$!
 
           # Wait for server to start
           timeout 30 bash -c 'until curl -s http://localhost:4173 > /dev/null; do sleep 1; done'
 
           # Run E2E tests against preview server
-          TEST_URL=http://localhost:4173 pnpm run test:e2e
+          TEST_URL=http://localhost:4173 npm run test:e2e
 
           # Clean up
           kill $PREVIEW_PID
