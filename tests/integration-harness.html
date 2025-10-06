@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>jq-wasm Integration Test Harness</title>
+</head>
+<body>
+  <h1>jq-wasm Integration Test Harness</h1>
+  <div id="status">Loading...</div>
+  
+  <script type="module">
+    // This will be populated by the test
+    window.testResults = [];
+    window.testReady = false;
+    
+    // Import the jq module
+    import { jq, promised } from '/src/lib/jq-wasm/index.ts';
+    
+    // Expose to tests
+    window.jq = jq;
+    window.promised = promised;
+    window.testReady = true;
+    
+    document.getElementById('status').textContent = 'Ready';
+  </script>
+</body>
+</html>
