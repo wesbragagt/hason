@@ -9,14 +9,26 @@ A fast, modern JSON formatter and processor that works offline. Transform, valid
 ```
 hason/
 ├── src/
-│   ├── lib/jq-wasm/    # WebAssembly jq processor
-│   ├── components/     # React components
-│   ├── App.tsx         # Main application
-│   └── main.tsx        # Application entry
-├── public/             # Static assets
-├── tests/              # Unit, integration, and e2e tests
-├── docs/               # Documentation (Nix setup, etc.)
-└── .github/            # CI/CD workflows
+│   ├── components/           # React components
+│   │   └── ui/              # shadcn/ui components
+│   ├── lib/
+│   │   ├── jq-wasm/         # WebAssembly jq processor
+│   │   │   └── wasm/        # WASM binaries and JS files
+│   │   └── utils.ts         # Utility functions
+│   ├── themes/              # Theme definitions
+│   ├── assets/              # Static assets (images, etc.)
+│   ├── App.tsx              # Main application
+│   └── main.tsx             # Application entry point
+├── @/                       # shadcn/ui components (alias for src/components/ui)
+├── public/                  # Static public assets
+├── tests/                   # Test suites
+│   ├── unit/               # Unit tests
+│   ├── integration/        # Integration tests
+│   ├── e2e/                # End-to-end tests
+│   └── fixtures/           # Test data and fixtures
+├── docs/                   # Documentation
+├── .github/                # CI/CD workflows
+└── playwright-report/      # Test reports (generated)
 ```
 
 ## What Problem Does This Solve?
@@ -39,20 +51,19 @@ hason/
 
 ```bash
 # Clone and setup
-git clone <your-repo-url>
+git clone https://github.com/wesbragagt/hason.git
 cd hason
 
 # Install dependencies
 npm install
-
-# Setup jq for development (if using Nix)
-npm run setup:jq
 
 # Start development server
 npm run dev
 ```
 
 Visit `http://localhost:5173` to start formatting JSON.
+
+> **Note**: The jq WebAssembly files are pre-built and included in the repository. For advanced WASM builds, see the [Nix documentation](docs/nix.md).
 
 ### 🐳 Docker Deployment
 
@@ -97,11 +108,28 @@ console.log(JQ_VERSION); // "1.8.1"
 ### Development Commands
 ```bash
 npm run dev              # Start development server
-npm run build            # Build for production
-npm run test             # Run unit and integration tests
-npm run test:e2e         # Run end-to-end tests
-npm run lint             # Lint code
+npm run build            # Build for production (TypeScript + Vite)
 npm run preview          # Preview production build
+
+# Testing
+npm run test             # Run unit tests (vitest)
+npm run test:unit        # Run unit tests
+npm run test:integration # Run integration tests
+npm run test:all         # Run all tests (unit + integration + e2e)
+npm run test:e2e         # Run end-to-end tests (playwright)
+npm run test:ui          # Run tests with UI
+npm run test:coverage    # Run tests with coverage report
+
+# Code Quality
+npm run lint             # Lint code (oxlint)
+npm run check            # Type check and lint
+
+# E2E Testing
+npm run test:e2e:headed  # Run e2e tests in headed mode
+npm run test:e2e:debug   # Debug e2e tests
+npm run test:e2e:ui      # Run e2e tests with UI
+npm run test:e2e:report  # Show e2e test report
+npm run test:e2e:install # Install playwright browsers
 ```
 
 ### Nix Commands (for WASM builds)

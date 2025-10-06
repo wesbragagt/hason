@@ -9,7 +9,6 @@ import {
 import { Palette } from "lucide-react"
 
 const themes = [
-  { name: "Ocean Breeze", value: "ocean-breeze", description: "Cool blues and greens" },
   { name: "Catppuccin", value: "catppuccin", description: "Warm purples and pinks" },
   { name: "Starry Night", value: "starry-night", description: "Deep purple galaxy" },
   { name: "Doom 64", value: "doom-64", description: "Retro gaming vibes" },
@@ -21,7 +20,7 @@ export function ThemeSwitcher() {
 
   const handleThemeChange = (themeName: string) => {
     // Remove existing theme classes
-    document.documentElement.classList.remove("ocean-breeze", "catppuccin", "starry-night", "doom-64", "clean-slate", "default")
+    document.documentElement.classList.remove("catppuccin", "starry-night", "doom-64", "clean-slate", "default")
     
     // Add new theme class if not default
     if (themeName !== "default") {
