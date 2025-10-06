@@ -5,8 +5,8 @@ import { vi } from 'vitest'
 global.document = global.document || {}
 global.window = global.window || {}
 
-// Mock the jq-hason package for integration tests
-vi.mock('jq-hason', () => {
+// Mock the jq-wasm library for integration tests
+vi.mock('@/lib/jq-wasm', () => {
   const mockJq = {
     async json(input: any, filter: string): Promise<any> {
       // Implement basic jq functionality for testing
