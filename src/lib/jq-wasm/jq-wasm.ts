@@ -1,9 +1,8 @@
-// Modern ESM-first jq WASM wrapper using vite-plugin-wasm
+// jq WASM wrapper using dynamic script loading
 
-// Import WASM module and JS factory directly using ES modules
-import jqWasmModule from './wasm/jq_1-8-1.wasm?init';
-// @ts-ignore - Importing legacy module
-import jqModuleFactory from './wasm/jq_1-8-1.js' assert { type: 'javascript' };
+// Import URLs for the WASM files
+import jqScriptUrl from './wasm/jq_1-8-1.js?url';
+import jqWasmUrl from './wasm/jq_1-8-1.wasm?url';
 
 interface JQModule {
   jq: {
@@ -20,10 +19,17 @@ interface JQModule {
   ALLOC_NORMAL: number;
 }
 
+// Declare global jqModule from the UMD module
+declare global {
+  interface Window {
+    jqModule?: (config?: any) => Promise<JQModule>;
+  }
+}
+
 let jqModule: JQModule | null = null;
 let modulePromise: Promise<JQModule> | null = null;
 
-// Load WASM module using modern ES module imports
+// Load WASM module dynamically
 async function loadModule(): Promise<JQModule> {
   if (jqModule) {
     return jqModule;
@@ -35,12 +41,28 @@ async function loadModule(): Promise<JQModule> {
 
   modulePromise = (async () => {
     try {
-      // Initialize the WASM module using vite-plugin-wasm
-      const wasmInstance = await jqWasmModule();
+      // Dynamically load the jq JS file
+      if (!window.jqModule) {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = jqScriptUrl;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load jq module'));
+          document.head.appendChild(script);
+        });
+      }
 
-      // Create the module with the WASM instance using direct ES import
-      const wasmModule = await jqModuleFactory({
-        wasmBinary: wasmInstance,
+      if (!window.jqModule) {
+        throw new Error('jqModule not found after loading script');
+      }
+
+      // Load the WASM binary
+      const wasmResponse = await fetch(jqWasmUrl);
+      const wasmBinary = await wasmResponse.arrayBuffer();
+
+      // Initialize the module with the WASM binary
+      const wasmModule = await window.jqModule({
+        wasmBinary: new Uint8Array(wasmBinary),
         locateFile: () => {
           // This function is required by the API but will never be called
           // because we provide the WASM binary directly via the wasmBinary option.
