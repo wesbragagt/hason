@@ -13,16 +13,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Cache WASM files
-        id: cache-wasm
-        uses: actions/cache@v4
-        with:
-          path: |
-            packages/app/public/jq*.js
-            packages/app/public/jq*.wasm
-            packages/jq-hason/src/wasm/jq*.js
-            packages/jq-hason/src/wasm/jq*.wasm
-          key: jq-wasm-${{ hashFiles('flake.nix', 'flake.lock', 'packages/app/public/jq-version.json') }}
+       - name: Cache WASM files
+         id: cache-wasm
+         uses: actions/cache@v4
+         with:
+           path: |
+             public/jq*.js
+             public/jq*.wasm
+             src/lib/jq-wasm/wasm/jq*.js
+             src/lib/jq-wasm/wasm/jq*.wasm
+           key: jq-wasm-${{ hashFiles('flake.nix', 'flake.lock', 'public/jq-version.json') }}
 
       - name: Install Nix
         if: steps.cache-wasm.outputs.cache-hit != 'true'
@@ -39,26 +39,26 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nix-
 
-      - name: Build WASM files
-        if: steps.cache-wasm.outputs.cache-hit != 'true'
-        run: |
-          nix build .#jq-wasm
-          mkdir -p packages/app/public packages/jq-hason/src/wasm
-          cp -v result/lib/jq*.js packages/app/public/
-          cp -v result/lib/jq*.wasm packages/app/public/
-          cp -v result/lib/jq*.js packages/jq-hason/src/wasm/
-          cp -v result/lib/jq*.wasm packages/jq-hason/src/wasm/
+       - name: Build WASM files
+         if: steps.cache-wasm.outputs.cache-hit != 'true'
+         run: |
+           nix build .#jq-wasm
+           mkdir -p public src/lib/jq-wasm/wasm
+           cp -v result/lib/jq*.js public/
+           cp -v result/lib/jq*.wasm public/
+           cp -v result/lib/jq*.js src/lib/jq-wasm/wasm/
+           cp -v result/lib/jq*.wasm src/lib/jq-wasm/wasm/
 
-      - name: Upload WASM artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: jq-wasm-files
-          path: |
-            packages/app/public/jq*.js
-            packages/app/public/jq*.wasm
-            packages/jq-hason/src/wasm/jq*.js
-            packages/jq-hason/src/wasm/jq*.wasm
-            packages/app/public/jq-version.json
+       - name: Upload WASM artifacts
+         uses: actions/upload-artifact@v4
+         with:
+           name: jq-wasm-files
+           path: |
+             public/jq*.js
+             public/jq*.wasm
+             src/lib/jq-wasm/wasm/jq*.js
+             src/lib/jq-wasm/wasm/jq*.wasm
+             public/jq-version.json
 
   unit-tests:
     name: Unit & Integration Tests
@@ -74,14 +74,11 @@ jobs:
           name: jq-wasm-files
           path: ./
 
-      - name: Setup pnpm and install dependencies
-        uses: ./.github/actions/setup-install
-
-      - name: Build packages
-        run: pnpm build:packages
-
-      - name: Run unit and integration tests
-        run: NODE_ENV=test pnpm --filter=app test
+       - name: Setup npm and install dependencies
+         uses: ./.github/actions/setup-install
+       
+       - name: Run unit and integration tests
+         run: NODE_ENV=test npm run test
 
   e2e-tests:
     name: E2E Tests (Preview Build)

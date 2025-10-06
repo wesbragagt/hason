@@ -2,19 +2,21 @@
 
 A fast, modern JSON formatter and processor that works offline. Transform, validate, and format JSON data with jq filters in your browser.
 
-![Hason JSON Formatter Screenshot](packages/app/src/assets/hason-screenshot.png)
+![Hason JSON Formatter Screenshot](src/assets/hason-screenshot.png)
 
-## 🏗️ Monorepo Structure
-
-This project is organized as a pnpm workspace monorepo:
+## 🏗️ Project Structure
 
 ```
 hason/
-├── packages/
-│   ├── app/         # React PWA application  
-│   └── jq-hason/    # WebAssembly jq processor (npm package)
-├── docs/            # Documentation (Nix setup, etc.)
-└── .github/         # CI/CD workflows with shared actions
+├── src/
+│   ├── lib/jq-wasm/    # WebAssembly jq processor
+│   ├── components/     # React components
+│   ├── App.tsx         # Main application
+│   └── main.tsx        # Application entry
+├── public/             # Static assets
+├── tests/              # Unit, integration, and e2e tests
+├── docs/               # Documentation (Nix setup, etc.)
+└── .github/            # CI/CD workflows
 ```
 
 ## What Problem Does This Solve?
@@ -40,14 +42,14 @@ hason/
 git clone <your-repo-url>
 cd hason
 
-# Install dependencies (uses pnpm workspace)
-pnpm install
+# Install dependencies
+npm install
 
 # Setup jq for development (if using Nix)
-pnpm run setup:jq
+npm run setup:jq
 
 # Start development server
-pnpm run dev
+npm run dev
 ```
 
 Visit `http://localhost:5173` to start formatting JSON.
@@ -68,42 +70,38 @@ Visit `http://localhost:3000` to access the application.
 
 See [Docker Documentation](docs/docker.md) for advanced deployment options, Kubernetes configs, and troubleshooting.
 
-### Using jq-hason as an npm Package
+### Using the jq-wasm Library
 
-The `jq-hason` package can be used independently in other projects:
-
-```bash
-npm install jq-hason
-```
+The jq WebAssembly processor is integrated into the application:
 
 ```typescript
-import { jq, getJQVersion } from 'jq-hason';
+import { promised, JQ_VERSION } from '@/lib/jq-wasm';
 
 // Process JSON with jq filter
-const result = await jq({ name: "John", age: 30 }, '.name');
+const result = await promised({ name: "John", age: 30 }, '.name');
 console.log(result); // "John"
 
 // Get jq version
-console.log(getJQVersion()); // "1.8.1"
+console.log(JQ_VERSION); // "1.8.1"
 ```
 
 ## Architecture
 
 **Tech Stack**: React 19, TypeScript, Vite 6, PWA with Workbox  
 **Build System**: Nix for reproducible jq WebAssembly builds  
-**Package Manager**: pnpm with workspace support  
-**Bundling**: tsdown for npm package distribution  
+**Package Manager**: npm  
 **Testing**: Vitest (unit) + Playwright (e2e)
 
 ## Available Commands
 
-### Root Workspace Commands
+### Development Commands
 ```bash
-pnpm run dev           # Start app development server
-pnpm run build         # Build entire workspace (packages + app)
-pnpm run test          # Run all tests
-pnpm run setup:jq      # Setup jq binary for development
-pnpm run build:wasm    # Build jq WebAssembly files
+npm run dev              # Start development server
+npm run build            # Build for production
+npm run test             # Run unit and integration tests
+npm run test:e2e         # Run end-to-end tests
+npm run lint             # Lint code
+npm run preview          # Preview production build
 ```
 
 ### Nix Commands (for WASM builds)

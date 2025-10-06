@@ -33,25 +33,25 @@ jobs:
       - name: Setup jq and WASM files
         run: nix run .#copy-wasm-to-app
       
-      - name: Setup pnpm and install dependencies
-        uses: ./.github/actions/setup-install
+       - name: Setup npm and install dependencies
+         uses: ./.github/actions/setup-install
 
-      - name: Build application
-        run: pnpm run build
-        env:
-          BASE_URL: /hason/
-      
-      - name: Verify jq in build output
-        run: |
-          ls -la packages/app/dist/jq* || echo "No jq files found in dist - check if copying is needed"
-          
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-      
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./packages/app/dist
+       - name: Build application
+         run: npm run build
+         env:
+           BASE_URL: /hason/
+       
+       - name: Verify jq in build output
+         run: |
+           ls -la dist/jq* || echo "No jq files found in dist - check if copying is needed"
+           
+       - name: Setup Pages
+         uses: actions/configure-pages@v4
+       
+       - name: Upload artifact
+         uses: actions/upload-pages-artifact@v3
+         with:
+           path: ./dist
 
   deploy:
     name: Deploy to GitHub Pages
