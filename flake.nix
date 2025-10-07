@@ -102,17 +102,22 @@
             # Build main.o separately
             emmake make src/main.o
             
-            # Compile to WASM with specific exports using the library
-            emcc -O3 \
+            # Compile to WASM with specific exports and FileSystem support
+            # Note: Using -O2 instead of -O3 and --closure 0 to preserve post.js exports
+            emcc -O2 \
               -s WASM=1 \
               -s EXPORTED_FUNCTIONS='["_main", "_jq_init", "_jq_compile", "_jq_next", "_jq_teardown", "_malloc", "_free"]' \
-              -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap", "allocate", "intArrayFromString", "ALLOC_NORMAL"]' \
+              -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap", "allocate", "intArrayFromString", "ALLOC_NORMAL", "FS", "HEAPU8", "HEAPU32"]' \
               -s MODULARIZE=1 \
               -s EXPORT_NAME="jqModule" \
               -s ALLOW_MEMORY_GROWTH=1 \
               -s TOTAL_MEMORY=16777216 \
               -s NO_EXIT_RUNTIME=1 \
               -s INVOKE_RUN=0 \
+              -s FORCE_FILESYSTEM=1 \
+              -s NODERAWFS=0 \
+              --closure 0 \
+              --minify 0 \
               --pre-js ${./src/lib/jq-wasm/wasm/pre.js} \
               --post-js ${./src/lib/jq-wasm/wasm/post.js} \
               -o jq.js \
@@ -232,18 +237,15 @@
               echo "📦 Building jq-wasm package with Nix..."
               nix build .#jq-wasm
               
-              # Copy output to public directory and jq-wasm library
-              echo "📁 Copying WASM files to directories..."
-              mkdir -p public src/lib/jq-wasm/wasm
+              # Copy output to public directory only
+              echo "📁 Copying WASM files to public directory..."
+              mkdir -p public
               cp -v result/lib/jq*.js public/
               cp -v result/lib/jq*.wasm public/
-              cp -v result/lib/jq*.js src/lib/jq-wasm/wasm/
-              cp -v result/lib/jq*.wasm src/lib/jq-wasm/wasm/
               
               echo "✅ jq WASM module built successfully!"
-              echo "📂 Files available in public/ and src/lib/jq-wasm/wasm/ directories:"
+              echo "📂 Files available in public/ directory:"
               ls -la public/jq*
-              ls -la src/lib/jq-wasm/wasm/jq*
             ''}";
           };
 
@@ -356,7 +358,7 @@
               echo ""
               echo "🔗 More Info:"
               echo "  - Development shell includes: emcc, node, jq, wasm tools"
-               echo "  - WASM files are copied to public/ and src/lib/jq-wasm/wasm/"
+               echo "  - WASM files are copied to public/ directory"
                echo "  - jq version configuration is stored in public/jq-version.json"
             ''}";
           };

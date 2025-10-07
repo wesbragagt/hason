@@ -57,7 +57,22 @@ export default defineConfig({
       allow: ['../..']
     }
   },
-  optimizeDeps: {},
+  optimizeDeps: {
+    exclude: ['./src/lib/jq-wasm/wasm/jq_1-8-1.js']
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        assetFileNames: (assetInfo) => {
+          // Don't hash the jq files to avoid naming conflicts
+          if (assetInfo.name && (assetInfo.name.includes('jq_1-8-1.js') || assetInfo.name.includes('jq_1-8-1.wasm'))) {
+            return 'assets/[name][extname]'
+          }
+          return 'assets/[name]-[hash][extname]'
+        }
+      }
+    }
+  },
   test: {
     environment: 'happy-dom',
     setupFiles: ['./tests/setup.ts'],

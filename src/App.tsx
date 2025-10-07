@@ -52,14 +52,33 @@ function App() {
     })
   }, [])
 
-  // Initialize jq-hason
+  // Initialize jq-hason synchronously during app startup
   useEffect(() => {
-    try {
-      jq = { promised }
-      setJqLoaded(true)
-    } catch (err) {
-      console.error('Failed to initialize jq-hason:', err)
-      setJqLoaded(false)
+    let cancelled = false;
+
+    const initializeJq = async () => {
+      try {
+        // Preload the jq module during app initialization
+        console.log('Preloading jq WASM module...')
+        await promised({test: true}, '.test') // Force module loading
+
+        if (!cancelled) {
+          jq = { promised }
+          setJqLoaded(true)
+          console.log('jq WASM module loaded successfully')
+        }
+      } catch (err) {
+        console.error('Failed to initialize jq-hason:', err)
+        if (!cancelled) {
+          setJqLoaded(false)
+        }
+      }
+    }
+
+    initializeJq()
+
+    return () => {
+      cancelled = true
     }
   }, [])
 

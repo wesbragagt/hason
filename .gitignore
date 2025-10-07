@@ -179,3 +179,20 @@ public/jq.wasm
 public/jq_*.js
 public/jq_*.wasm
 public/jq_*.mjs
+public/jq-worker.js
+public/wasm/
+
+# Nix build artifacts
+result
+result-*
+
+# Test artifacts and debug files
+test-jq-*.js
+test-jq-*.html
+*-REPORT.md
+*-SUMMARY.md
+rebuild-wasm-*.sh
+
+# Generated JS files (keep only TS sources)
+tests/**/*.js
+!tests/**/*.config.js
