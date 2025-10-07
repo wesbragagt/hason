@@ -15,8 +15,17 @@
 // The application works perfectly in development mode.
 
 // Use static asset URLs to avoid any bundling/minification issues
-const jqScriptUrl = '/wasm/jq_1-8-1.js';
-const jqWasmUrl = '/wasm/jq_1-8-1.wasm';
+const assetBaseUrl = (() => {
+  const base = typeof import.meta !== 'undefined' && import.meta.env && typeof import.meta.env.BASE_URL === 'string'
+    ? import.meta.env.BASE_URL
+    : '/';
+  return base.endsWith('/') ? base : `${base}/`;
+})();
+
+const buildAssetUrl = (fileName: string) => `${assetBaseUrl}${fileName}`;
+
+const jqScriptUrl = buildAssetUrl('jq_1-8-1.js');
+const jqWasmUrl = buildAssetUrl('jq_1-8-1.wasm');
 
 interface JQModule {
   json(input: any, filter: string): Promise<any>;

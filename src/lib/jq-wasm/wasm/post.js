@@ -102,89 +102,68 @@ Module['raw'] = async function(inputStr, filter, args = []) {
     // Create input file
     FS.writeFile('/tmp/input.json', inputStr);
     
-    // Prepare arguments: jq [options] [filter] [input-file]
+    // Prepare arguments: argv[0] (program name) [options] [filter] [input-file]
     // Options must come BEFORE the filter
-    const jqArgs = [...args, filter, '/tmp/input.json'];
+    // IMPORTANT: argv[0] should be the program name "jq"
+    const normalizedArgs = args.some((flag) => flag === '-M' || flag === '--monochrome-output') ? args : ['-M', ...args];
+    const jqArgs = ['jq', ...normalizedArgs, filter, '/tmp/input.json'];
     
     // Debug logging
     console.log('jq arguments:', jqArgs);
     
-    // Capture output
+    // Capture output by patching existing TTY ops
     let stdoutBuffer = '';
     let stderrBuffer = '';
     
-    // Override stdout/stderr with complete stream objects
-    const stdoutTty = {
-      output: [],
-      ops: {
-        put_char: function(tty, val) {
-          if (val === null || val === 10) {
-            stdoutBuffer += String.fromCharCode(...tty.output) + '\n';
-            tty.output = [];
-          } else if (val !== 0) {
-            tty.output.push(val);
-          }
-        },
-        fsync: function(tty) {
-          if (tty.output && tty.output.length > 0) {
-            stdoutBuffer += String.fromCharCode(...tty.output);
-            tty.output = [];
-          }
+    const stdoutStream = FS.streams[1];
+    const stderrStream = FS.streams[2];
+    
+    const originalStdoutOps = stdoutStream.tty.ops;
+    const originalStderrOps = stderrStream.tty.ops;
+    
+    const originalStdoutPutChar = originalStdoutOps.put_char;
+    const originalStdoutFsync = originalStdoutOps.fsync;
+    const originalStderrPutChar = originalStderrOps.put_char;
+    const originalStderrFsync = originalStderrOps.fsync;
+    
+    stdoutStream.tty.ops = {
+      put_char: function(tty, val) {
+        if (originalStdoutPutChar) {
+          originalStdoutPutChar(tty, val);
+        }
+        if (val === null) {
+          return;
+        }
+        if (val === 10) {
+          stdoutBuffer += '\n';
+        } else if (val !== 0) {
+          stdoutBuffer += String.fromCharCode(val);
+        }
+      },
+      fsync: function(tty) {
+        if (originalStdoutFsync) {
+          originalStdoutFsync(tty);
         }
       }
     };
     
-    const stderrTty = {
-      output: [],
-      ops: {
-        put_char: function(tty, val) {
-          if (val === null || val === 10) {
-            stderrBuffer += String.fromCharCode(...tty.output) + '\n';
-            tty.output = [];
-          } else if (val !== 0) {
-            tty.output.push(val);
-          }
-        },
-        fsync: function(tty) {
-          if (tty.output && tty.output.length > 0) {
-            stderrBuffer += String.fromCharCode(...tty.output);
-            tty.output = [];
-          }
+    stderrStream.tty.ops = {
+      put_char: function(tty, val) {
+        if (originalStderrPutChar) {
+          originalStderrPutChar(tty, val);
         }
-      }
-    };
-    
-    // Create complete stream objects with all required properties
-    FS.streams[1] = {
-      fd: 1,
-      tty: stdoutTty,
-      seekable: false,
-      stream_ops: {
-        write: function(stream, buffer, offset, length, position) {
-          for (let i = 0; i < length; i++) {
-            stream.tty.ops.put_char(stream.tty, buffer[offset + i]);
-          }
-          return length;
-        },
-        fsync: function(stream) {
-          stream.tty.ops.fsync(stream.tty);
+        if (val === null) {
+          return;
         }
-      }
-    };
-    
-    FS.streams[2] = {
-      fd: 2,
-      tty: stderrTty,
-      seekable: false,
-      stream_ops: {
-        write: function(stream, buffer, offset, length, position) {
-          for (let i = 0; i < length; i++) {
-            stream.tty.ops.put_char(stream.tty, buffer[offset + i]);
-          }
-          return length;
-        },
-        fsync: function(stream) {
-          stream.tty.ops.fsync(stream.tty);
+        if (val === 10) {
+          stderrBuffer += '\n';
+        } else if (val !== 0) {
+          stderrBuffer += String.fromCharCode(val);
+        }
+      },
+      fsync: function(tty) {
+        if (originalStderrFsync) {
+          originalStderrFsync(tty);
         }
       }
     };
@@ -206,6 +185,8 @@ Module['raw'] = async function(inputStr, filter, args = []) {
     FS.streams[0] = originalStdin;
     FS.streams[1] = originalStdout;
     FS.streams[2] = originalStderr;
+    stdoutStream.tty.ops = originalStdoutOps;
+    stderrStream.tty.ops = originalStderrOps;
     
     if (exitCode !== 0) {
       console.error('jq failed with exit code:', exitCode);
@@ -221,6 +202,8 @@ Module['raw'] = async function(inputStr, filter, args = []) {
     FS.streams[0] = originalStdin;
     FS.streams[1] = originalStdout;
     FS.streams[2] = originalStderr;
+    stdoutStream.tty.ops = originalStdoutOps;
+    stderrStream.tty.ops = originalStderrOps;
     throw error;
   }
 };
